@@ -1,0 +1,178 @@
+[
+  {
+    "name": "Hold",
+    "upgradeType": "ship",
+    "cargo": "1"
+  },
+  {
+    "name": "Boarding Hook",
+    "upgradeType": "ship"
+  },
+  {
+    "name": "Broadside Cannons",
+    "upgradeType": "ship",
+    "combatValue": "2"
+  },
+  {
+    "name": "Swivel Gun",
+    "upgradeType": "ship",
+    "combatValue": "1"
+  },
+  {
+    "name": "Smoke Bomb",
+    "upgradeType": "ship",
+    "defense": "1"
+  },
+  {
+    "name": "Strength I",
+    "upgradeType": "captain",
+    "location": "brain",
+    "combatValue": "1"
+  },
+  {
+    "name": "Cutlass",
+    "upgradeType": "captain",
+    "location": "1h",
+    "combatValue": "2"
+  },
+  {
+    "name": "Dagger",
+    "upgradeType": "captain",
+    "location": "1h",
+    "combatValue": "1",
+    "precision": "1"
+  },
+  {
+    "name": "Gauntlets",
+    "upgradeType": "captain",
+    "location": "hand",
+    "defense": "1"
+  },
+  {
+    "name": "Greaves",
+    "upgradeType": "captain",
+    "location": "leg",
+    "defense": "2"
+  },
+  {
+    "name": "Larder",
+    "upgradeType": "ship",
+    "cargo": "2"
+  },
+  {
+    "name": "Mortar",
+    "upgradeType": "ship",
+    "combatValue": "3"
+  },
+  {
+    "name": "Ironsides",
+    "upgradeType": "ship",
+    "defense": "2"
+  },
+  {
+    "name": "Constitution",
+    "upgradeType": "captain",
+    "location": "brain",
+    "defense": "1"
+  },
+  {
+    "name": "Pistol",
+    "upgradeType": "captain",
+    "location": "1h",
+    "combatValue": "3"
+  },
+  {
+    "name": "Crossbow",
+    "upgradeType": "captain",
+    "location": "2h",
+    "combatValue": "2",
+    "precision": "1"
+  },
+  {
+    "name": "Spaulders",
+    "upgradeType": "captain",
+    "location": "torso",
+    "defense": "3"
+  },
+  {
+    "name": "Stockpile",
+    "upgradeType": "ship",
+    "cargo": "3"
+  },
+  {
+    "name": "Chainshot",
+    "upgradeType": "ship",
+    "combatValue": "4"
+  },
+  {
+    "name": "Razor Wire",
+    "upgradeType": "ship",
+    "defense": "3"
+  },
+  {
+    "name": "Intelligence",
+    "upgradeType": "captain",
+    "location": "brain",
+    "precision": "1"
+  },
+  {
+    "name": "Axe Pistol",
+    "upgradeType": "captain",
+    "location": "1h",
+    "combatValue": "4"
+  },
+  {
+    "name": "Hidden Blade",
+    "upgradeType": "captain",
+    "location": "1h",
+    "combatValue": "3",
+    "precision": "1"
+  },
+  {
+    "name": "Cuirass",
+    "upgradeType": "captain",
+    "location": "torso",
+    "defense": "4"
+  },
+  {
+    "name": "Carronade",
+    "upgradeType": "ship",
+    "combatValue": "5"
+  },
+  {
+    "name": "Dragonbreath",
+    "upgradeType": "ship",
+    "combatValue": "5",
+    "defense": "1"
+  },
+  {
+    "name": "Burning Oil",
+    "upgradeType": "ship",
+    "defense": "4"
+  },
+  {
+    "name": "Strength II",
+    "upgradeType": "captain",
+    "location": "brain",
+    "combatValue": "2"
+  },
+  {
+    "name": "Blunderbuss",
+    "upgradeType": "captain",
+    "location": "2h",
+    "combatValue": "5"
+  },
+  {
+    "name": "Long Rifle",
+    "upgradeType": "captain",
+    "location": "2h",
+    "combatValue": "4",
+    "precision": "1"
+  },
+  {
+    "name": "Shield",
+    "upgradeType": "captain",
+    "location": "1h",
+    "defense": "5"
+  }
+]

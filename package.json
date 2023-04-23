@@ -1,0 +1,20 @@
+{
+  "name": "scripts",
+  "version": "1.0.0",
+  "description": "Scripts for the Tabletop Playground mod \"Swash\"",
+  "main": "global.js",
+  "devDependencies": {
+    "@tabletop-playground/api": "^0.33.0",
+    "rimraf": "^3.0.2",
+    "tsc": "^2.0.4",
+    "typescript": "^4.9.3"
+  },
+  "scripts": {
+    "clean": "rimraf dest",
+    "build": "yarn clean && npx tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Evan Kaiser",
+  "license": "MIT",
+  "dependencies": {}
+}

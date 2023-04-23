@@ -1,0 +1,33 @@
+# Scripting
+
+x Make separate zones for upgrades to avoid always having cards processed
+  - i.e. when you pull a card into your Draw deck
+  - Additional notes:
+    x Cards that are flipped upside down, even when in upgrade zones, should not count as an upgrade
+    x May need to check if card is within an upgrade zone when flipped face up and process accordingly
+
+x Take account of removing upgrades from zones
+
+x Check for upgrades already in zones when scripting is loaded
+
+- Captain Special Abilities need to be coded and accounted for when on the snap points
+
+x Check which crew are still on the original snap points and update upkeep accordingly
+  x Show upkeep in UI
+
+- Crew not on original snap points, but on Captain card need to count for Defense
+- Crew on ship needs to count for Defense
+
+- Counters & buttons to change amount for resources
+  - Trading calculator
+
+--Bonus:
+  - Detect damage cubes and crew members on Ship(s) in the middle and show a UI of the current status
+  - Attach (through some joint mechanism) the part token to each upgrade card for Captain
+    - Unattach and place back in original position if moved out of upgrade zone
+
+# General
+
+- Add damage cubes and some container to draw them from
+
+- Snap points for table items
