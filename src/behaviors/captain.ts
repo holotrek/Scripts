@@ -1,11 +1,13 @@
-import { Border, GameObject, LayoutBox, Player, SnapPoint, Text, UIElement, UIPresentationStyle, Vector, VerticalBox, world } from '@tabletop-playground/api';
-import { CaptainUpgrade, CaptainUpgradeLocation } from './captainUpgrade';
-import { Colors, Tags } from './constants';
-import { ImageStatRow, TextStatRow } from './ui/statRow';
-import { Resource, Resources } from './resources';
+import { Border, Card, GameObject, LayoutBox, Player, SnapPoint, Text, UIElement, UIPresentationStyle, Vector, VerticalBox, world } from '@tabletop-playground/api';
+import { CaptainUpgrade, CaptainUpgradeLocation } from '../captainUpgrade';
+import { Colors, Tags } from '../constants';
+import { ImageStatRow, TextStatRow } from '../ui/statRow';
+import { IUpgradeable } from '../interfaces/upgradeable';
+import { Resource, Resources } from '../resources';
+import { Upgrade } from '../upgrade';
 
-export class Captain {
-  private _sheet?: GameObject;
+export class CaptainBehavior implements IUpgradeable {
+  private _isActive = false;
 
   upgrades: CaptainUpgrade[] = [];
   initialCombatValue = 2;
@@ -37,21 +39,30 @@ export class Captain {
     return this.initialPrecision + this.upgrades.map(x => x?.precision ?? 0).reduce((pv, cv) => pv + cv, 0);
   }
 
-  setSheet(obj: GameObject) {
-    this._sheet = obj;
-    for (let i = 0; i < 5; i++) {
-      const sp = obj.getSnapPoint(i);
-      this.crewUpkeep[i].snapPoint = sp;
-    }
-    this.abilityEyesPoint = obj.getSnapPoint(6);
-    this.abilityHandsPoint = obj.getSnapPoint(7);
-    this.abilityLegsPoint = obj.getSnapPoint(8);
+  get isActive(): boolean {
+    return this._isActive;
+  }
+  set isActive(isActive: boolean) {
+    this._isActive = isActive;
     this._renderStatsUi();
+  }
+
+  /**
+   * A captain in the Swash game
+   * @param card The actual game card that this behavior is related to
+   */
+  constructor(public card: Card) {
+    this._renderStatsUi();
+    this._recordSnapPoints();
   }
 
   isUpkeepRequired(idx: number) {
     const cu = this.crewUpkeep[idx];
     return cu.resource !== Resources.None && !cu.snapPoint?.getSnappedObject()?.getTags()?.includes(Tags.Crew);
+  }
+
+  getUpgrades(): Array<Upgrade> {
+    return this.upgrades;
   }
 
   addUpgrade(upgrade: CaptainUpgrade): boolean {
@@ -106,8 +117,19 @@ export class Captain {
     this._renderStatsUi();
   }
 
-  _renderStatsUi() {
-    if (this._sheet) {
+  private _recordSnapPoints() {
+    for (let i = 0; i < 5; i++) {
+      const sp = this.card.getSnapPoint(i);
+      this.crewUpkeep[i].snapPoint = sp;
+    }
+    this.abilityEyesPoint = this.card.getSnapPoint(6);
+    this.abilityHandsPoint = this.card.getSnapPoint(7);
+    this.abilityLegsPoint = this.card.getSnapPoint(8);
+    this._renderStatsUi();
+  }
+
+  private _renderStatsUi() {
+    if (this.isActive) {
       const container = new LayoutBox();
 
       const backdrop = new Border().setColor(Colors.black);
@@ -146,10 +168,10 @@ export class Captain {
       ui.presentationStyle = UIPresentationStyle.ViewAligned;
       ui.scale = 0.75;
       ui.widget = container;
-      if (this._sheet.getUIs().length) {
-        this._sheet.setUI(0, ui);
+      if (this.card.getUIs().length) {
+        this.card.setUI(0, ui);
       } else {
-        this._sheet.addUI(ui);
+        this.card.addUI(ui);
       }
     }
   }

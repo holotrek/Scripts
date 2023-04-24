@@ -3,7 +3,7 @@ import { CardDetails } from '@tabletop-playground/api';
 import { ShipUpgrade } from '../shipUpgrade';
 import { Upgrade } from '../upgrade';
 
-const shipUpgrades = [
+const upgrades = [
   new ShipUpgrade('Hold', 0, 0, 1),
   new ShipUpgrade('Boarding Hook', 0, 0, 0),
   new ShipUpgrade('Broadside Cannons', 2, 0, 0),
@@ -18,9 +18,6 @@ const shipUpgrades = [
   new ShipUpgrade('Carronade', 5, 0, 0),
   new ShipUpgrade('Dragonbreath', 5, 1, 0),
   new ShipUpgrade('Burning Oil', 0, 4, 0),
-];
-
-const captainUpgrades = [
   new CaptainUpgrade('Strength I', CaptainUpgradeLocation.Brain, 1, 0, 0),
   new CaptainUpgrade('Cutlass', CaptainUpgradeLocation.OneHandWeapon, 2, 0, 0),
   new CaptainUpgrade('Dagger', CaptainUpgradeLocation.OneHandWeapon, 1, 0, 1),
@@ -41,21 +38,9 @@ const captainUpgrades = [
 ];
 
 export class UpgradeManager {
-  static getUpgradeByCard(card: CardDetails): Upgrade | undefined {
+  static getUpgrade(card: CardDetails): Upgrade | undefined {
     const metaJson = card.metadata;
     const meta = JSON.parse(metaJson);
-    return this.getShipUpgrade(meta.upgradeName) || this.getCaptainUpgrade(meta.upgradeName);
-  }
-
-  static getUpgrade(name: string): Upgrade | undefined {
-    return this.getShipUpgrade(name) || this.getCaptainUpgrade(name);
-  }
-
-  static getShipUpgrade(name: string) {
-    return shipUpgrades.find(x => x.name === name);
-  }
-
-  static getCaptainUpgrade(name: string) {
-    return captainUpgrades.find(x => x.name === name);
+    return upgrades.find(x => x.name === meta.upgradeName);
   }
 }

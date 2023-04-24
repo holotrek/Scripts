@@ -1,4 +1,4 @@
-import { Color, GameObject } from '@tabletop-playground/api';
+import { CardDetails, Color, GameObject } from '@tabletop-playground/api';
 import { Colors } from './constants';
 
 export enum Resources {
@@ -74,5 +74,9 @@ export class Resource {
 
   static getFromGameObject(obj: GameObject): Resources {
     return Resources[obj.getTemplateName() as keyof typeof Resources];
+  }
+
+  static getFromCardDetail(card: CardDetails): Resources {
+    return Resources[card.name as keyof typeof Resources];
   }
 }

@@ -12,12 +12,4 @@ export class ShipUpgrade extends Upgrade {
   constructor(name: string, combatValue: number, defense: number, public cargo: number) {
     super(name, UpgradeType.Ship, combatValue, defense);
   }
-
-  static fromMetadata(metadataJson: string): ShipUpgrade | undefined {
-    const metadata = JSON.parse(metadataJson);
-    if (metadata.upgradeType == UpgradeType.Ship) {
-      return new ShipUpgrade(metadata.name, metadata.combatValue ?? 0, metadata.defense ?? 0, metadata.cargo ?? 0);
-    }
-    return undefined;
-  }
 }

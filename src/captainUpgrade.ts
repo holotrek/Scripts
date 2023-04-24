@@ -67,18 +67,4 @@ export class CaptainUpgrade extends Upgrade {
   ) {
     super(name, UpgradeType.Captain, combatValue, defense);
   }
-
-  static fromMetadata(metadataJson: string): CaptainUpgrade | undefined {
-    const metadata = JSON.parse(metadataJson);
-    if (metadata.upgradeType == UpgradeType.Captain) {
-      return new CaptainUpgrade(
-        metadata.name,
-        metadata.location,
-        metadata.combatValue ?? 0,
-        metadata.defense ?? 0,
-        metadata.precision ?? 0
-      );
-    }
-    return undefined;
-  }
 }

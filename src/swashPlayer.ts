@@ -1,13 +1,14 @@
 import { Border, Card, DrawingLine, GameObject, LayoutBox, Player, ScreenUIElement, SnapPoint, Text, Vector, VerticalBox, world, Zone } from '@tabletop-playground/api';
-import { Captain } from './captain';
-import { CaptainUpgrade } from './captainUpgrade';
+import { CaptainBehavior } from './behaviors/captain';
+import { CaptainManager } from './managers/captainManager';
+import { CardHelper } from './cardHelper';
 import { Colors, Tags } from './constants';
-import { Resource } from './resources';
-import { Ship } from './ship';
+import { IUpgradeable } from './interfaces/upgradeable';
+import { Resource, Resources } from './resources';
+import { ShipBehavior } from './behaviors/ship';
 import { ShipManager } from './managers/shipManager';
-import { ShipUpgrade } from './shipUpgrade';
 import { SwashZone } from './swashZone';
-import { Upgrade } from './upgrade';
+import { Upgrade, UpgradeType } from './upgrade';
 import { UpgradeManager } from './managers/upgradeManager';
 
 export const PLAYER_AREA_CENTER_X = 56;
@@ -30,21 +31,16 @@ const DRAW_DELTA_Y = -20;
 const DISCARD_DELTA_X = -4;
 const DISCARD_DELTA_Y = 20;
 
-// type UpgradeReturnType = {
-//   [UpgradeType.Captain]: CaptainUpgrade;
-//   [UpgradeType.Ship]: ShipUpgrade;
-// };
-
 export class SwashPlayer {
   private _lines: DrawingLine[] = [];
   private _screenUIidx: number | undefined;
 
-  captain: Captain;
+  captain?: CaptainBehavior;
   player?: Player;
   zones: SwashZone[] = [];
-  ship?: Ship;
+  ship?: ShipBehavior;
   playerInfo?: GameObject;
-  resources: { [key: number]: number } = {};
+  resources: { [key: string]: number } = {};
 
   get color() {
     return this.player?.getPlayerColor();
@@ -63,7 +59,6 @@ export class SwashPlayer {
     public centerPoint: Vector,
     public isRotated: boolean
   ) {
-    this.captain = new Captain();
     this._renderScreenUi();
   }
 
@@ -81,45 +76,20 @@ export class SwashPlayer {
   }
 
   triggerCrewMoved(crewObj: GameObject, snapPoint?: SnapPoint) {
-    if (this.player) {
+    if (this.player && this.captain) {
       this.captain.triggerCrewMoved(this.player, crewObj, snapPoint);
     }
   }
 
-  _assignShip(ship: Ship, sheet: GameObject) {
+  private _assignShip(card: Card) {
+    const ship = ShipManager.registerCard(card);
     this.ship = ship;
-    this.ship.setSheet(sheet);
-    this.ship.isOwned = true;
+    if (this.ship) {
+      this.ship.isOwned = true;
+    }
   }
 
-  // _findUpgrades(upgradeType: UpgradeType): UpgradeReturnType[UpgradeType][] {
-  //   const allZoneObjs = this.zone?.getOverlappingObjects() ?? [];
-  //   return allZoneObjs
-  //     .filter(o => o.getTags().includes('SwashCard'))
-  //     .map(o => o.getTemplateMetadata())
-  //     .map(mj => JSON.parse(mj))
-  //     .filter(m => m.upgradeType === upgradeType)
-  //     .map(m => (upgradeType === UpgradeType.Captain ? CaptainUpgrade.fromMetadata(m) : ShipUpgrade.fromMetadata(m)))
-  //     .filter(u => !!u)
-  //     .map(u => u as CaptainUpgrade | ShipUpgrade);
-  // }
-
-  _addResource(token: Card) {
-    const res = Resource.getFromGameObject(token);
-    const size = token.getStackSize();
-    const newVal = (this.resources[res] ?? 0) + size;
-    this.resources[res] = newVal;
-    console.log(`${this.player?.getName()} gained ${size} ${Resource.getName(res)} for a total of ${newVal}.`);
-  }
-  _removeResource(token: Card) {
-    const res = Resource.getFromGameObject(token);
-    const size = token.getStackSize();
-    const newVal = Math.max((this.resources[res] ?? 0) - size, 0);
-    this.resources[res] = newVal;
-    console.log(`${this.player?.getName()} lost ${size} ${Resource.getName(res)} for a total of ${newVal}.`);
-  }
-
-  _createPlayerZones() {
+  private _createPlayerZones() {
     const zone = SwashZone.createZone(
       this.color,
       this.playerIndex,
@@ -134,25 +104,17 @@ export class SwashPlayer {
     for (const c of zone.zone.getOverlappingObjects()) {
       if (c instanceof Card) {
         if (c.getTags().includes(Tags.Resource)) {
-          this._addResource(c);
+          this._updateResources(zone, true);
         } else if (c.getTags().includes(Tags.SwashShip)) {
-          this._processShipPlacedInZone(c);
+          this._processShipPlacedInZone(c, true);
         }
       }
     }
-    zone.zone.onBeginOverlap.add((_, c) => {
-      if (c instanceof Card) {
-        if (c.getTags().includes(Tags.Resource)) {
-          this._addResource(c);
-        }
-      }
+    zone.zone.onBeginOverlap.add(() => {
+      this._updateResources(zone);
     });
-    zone.zone.onEndOverlap.add((_, c) => {
-      if (c instanceof Card) {
-        if (c.getTags().includes(Tags.Resource)) {
-          this._removeResource(c);
-        }
-      }
+    zone.zone.onEndOverlap.add(() => {
+      this._updateResources(zone);
     });
 
     const capUpgradeDelta = new Vector(CAPTAIN_UPGRADES_DELTA_X, CAPTAIN_UPGRADES_DELTA_Y, 0);
@@ -167,14 +129,10 @@ export class SwashPlayer {
       0.5,
       'Captain Upgrades'
     );
-    capUpgradeZone.setOnCardEnter(card => this._processCaptainUpgradePlacedInZone(card));
-    capUpgradeZone.setOnCardLeave(card => this._processCaptainUpgradeRemovedFromZone(card));
+    capUpgradeZone.setOnCardEnter(_ => this._captainUgradesChanged(capUpgradeZone));
+    capUpgradeZone.setOnCardLeave(_ => this._captainUgradesChanged(capUpgradeZone));
     this.zones.push(capUpgradeZone);
-    for (const c of capUpgradeZone.zone.getOverlappingObjects()) {
-      if (c instanceof Card) {
-        this._processCaptainUpgradePlacedInZone(c);
-      }
-    }
+    this._captainUgradesChanged(capUpgradeZone, true);
 
     const shipUpgradeDelta = new Vector(SHIP_UPGRADES_DELTA_X, SHIP_UPGRADES_DELTA_Y, 0);
     const shipUpgradeZoneCenter = this.centerPoint.add(shipUpgradeDelta.multiply(this.isRotated ? -1 : 1));
@@ -188,133 +146,147 @@ export class SwashPlayer {
       0.5,
       'Ship Upgrades'
     );
-    shipUpgradeZone.setOnCardEnter(card => this._processShipUpgradePlacedInZone(card));
-    shipUpgradeZone.setOnCardLeave(card => this._processShipUpgradeRemovedFromZone(card));
+    shipUpgradeZone.setOnCardEnter(_ => this._shipUgradesChanged(shipUpgradeZone));
+    shipUpgradeZone.setOnCardLeave(_ => this._shipUgradesChanged(shipUpgradeZone));
     this.zones.push(shipUpgradeZone);
-    for (const c of shipUpgradeZone.zone.getOverlappingObjects()) {
-      if (c instanceof Card) {
-        this._processShipUpgradePlacedInZone(c);
-      }
-    }
+    this._shipUgradesChanged(shipUpgradeZone, true);
   }
 
-  _assignZoneObjects(zone: Zone) {
+  private _assignZoneObjects(zone: Zone) {
     const allZoneObjs = zone.getOverlappingObjects() ?? [];
+    // Find captain first since it is needed for additional cards
+    for (const o of allZoneObjs) {
+      if (o instanceof Card && o.getTags().includes(Tags.CaptainSheet)) {
+        this.captain = CaptainManager.registerCard(o);
+        this.captain.isActive = true;
+      }
+    }
+
     for (const o of allZoneObjs) {
       if (o.getTags().includes(Tags.PlayerInfo)) {
         this.playerInfo = o;
-      } else if (o.getTags().includes(Tags.CaptainSheet)) {
-        this.captain.setSheet(o);
       } else if (o.getTags().includes(Tags.UpgradeSlot)) {
-        this.captain.upgradeSlotTokens[o.getName()] = o;
+        if (this.captain) {
+          this.captain.upgradeSlotTokens[o.getName()] = o;
+        }
       }
     }
   }
 
-  _removeLines() {
-    for (const l of this._lines) {
-      world.removeDrawingLineObject(l);
-    }
-  }
-
-  _processShipPlacedInZone(card: Card) {
+  private _processShipPlacedInZone(card: Card, disableMessages = false) {
     const cardDetails = card.getCardDetails();
     if (!cardDetails.tags.includes(Tags.SwashShip)) {
       return;
     }
 
-    const ship = ShipManager.getShip(cardDetails.name);
-    if (ship) {
-      this._assignShip(ship, card);
-    }
-
-    this.player?.showMessage(`You acquired a ${cardDetails.name}!`);
-    world.broadcastChatMessage(`${this.player?.getName()} acquired a ${cardDetails.name}!`, this.color);
-  }
-
-  _showUpgradeSuccessMessage(upgrade?: Upgrade) {
-    if (upgrade) {
-      this.player?.showMessage(`You played upgrade: ${upgrade.name}.`);
-      world.broadcastChatMessage(`${this.player?.getName()} played upgrade: ${upgrade.name}.`, this.color);
+    this._assignShip(card);
+    if (this.ship && !disableMessages) {
+      this.player?.showMessage(`You acquired a ${this.ship.name}!`);
+      world.broadcastChatMessage(`${this.player?.getName()} acquired a ${this.ship.name}!`, this.color);
     }
   }
 
-  _showUpgradeRemovedMessage(upgrade?: Upgrade) {
-    if (upgrade) {
-      this.player?.showMessage(`You removed upgrade: ${upgrade.name}.`);
-      world.broadcastChatMessage(`${this.player?.getName()} removed upgrade: ${upgrade.name}.`, this.color);
-    }
+  private _showUpgradeSuccessMessage(upgrade: Upgrade) {
+    this.player?.showMessage(`You played upgrade: ${upgrade.name}.`);
+    world.broadcastChatMessage(`${this.player?.getName()} played upgrade: ${upgrade.name}.`, this.color);
   }
 
-  _processShipUpgradePlacedInZone(card: Card) {
-    const cardDetails = card.getCardDetails();
-    if (!cardDetails.tags.includes(Tags.SwashCard)) {
+  private _showUpgradeRemovedMessage(upgrade: Upgrade) {
+    this.player?.showMessage(`You removed upgrade: ${upgrade.name}.`);
+    world.broadcastChatMessage(`${this.player?.getName()} removed upgrade: ${upgrade.name}.`, this.color);
+  }
+
+  private _captainUgradesChanged(zone: SwashZone, disableMessages = false) {
+    return this._upgradesChanged(zone, this.captain, UpgradeType.Captain, disableMessages);
+  }
+
+  private _shipUgradesChanged(zone: SwashZone, disableMessages = false) {
+    return this._upgradesChanged(zone, this.ship, UpgradeType.Ship, disableMessages);
+  }
+
+  private _upgradeTimeout?: number;
+  private _upgradesChanged(
+    zone: SwashZone,
+    upgradeable: IUpgradeable | undefined,
+    typeAllowed: UpgradeType,
+    disableMessages = false
+  ) {
+    if (!upgradeable) {
       return;
     }
 
-    let success = false;
-    const upgrade = UpgradeManager.getUpgradeByCard(cardDetails);
-    if (upgrade && upgrade instanceof ShipUpgrade) {
-      if (this.ship?.addUpgrade(upgrade)) {
-        success = true;
-      } else {
-        this.player?.showMessage(`You cannot add another "${upgrade.name}" to your ship!`);
-      }
-    }
-
-    if (success) {
-      this._showUpgradeSuccessMessage(upgrade);
-    }
-  }
-
-  _processShipUpgradeRemovedFromZone(card: Card) {
-    const cardDetails = card.getCardDetails();
-    if (!cardDetails.tags.includes(Tags.SwashCard)) {
-      return;
-    }
-    const upgrade = UpgradeManager.getUpgradeByCard(cardDetails);
-    if (upgrade && upgrade instanceof ShipUpgrade) {
-      if (this.ship?.removeUpgrade(upgrade)) {
-        this._showUpgradeRemovedMessage(upgrade);
-      }
-    }
-  }
-
-  _processCaptainUpgradePlacedInZone(card: Card) {
-    const cardDetails = card.getCardDetails();
-    if (!cardDetails.tags.includes(Tags.SwashCard)) {
+    if (this._upgradeTimeout) {
       return;
     }
 
-    let success = false;
-    const upgrade = UpgradeManager.getUpgradeByCard(cardDetails);
-    if (upgrade && upgrade instanceof CaptainUpgrade) {
-      if (this.captain.addUpgrade(upgrade)) {
-        success = true;
-      } else {
-        this.player?.showMessage(`There is no more room for a ${upgrade.locationName}.`);
-      }
-    }
+    this._upgradeTimeout = setTimeout(() => {
+      const previousUpgrades = upgradeable.getUpgrades();
+      const allCardDetails = CardHelper.getAllCardDetailsInZone(zone.zone, Tags.SwashCard);
+      const updatedUpgrades = allCardDetails.map(c => UpgradeManager.getUpgrade(c));
 
-    if (success) {
-      this._showUpgradeSuccessMessage(upgrade);
-    }
+      const upgradesAdded = updatedUpgrades
+        .filter(u => u?.upgradeType === typeAllowed)
+        .map(u => u as Upgrade)
+        .filter(u => !previousUpgrades.map(pu => pu.name).includes(u.name));
+
+      const upgradesRemoved = previousUpgrades.filter(u => !updatedUpgrades.map(uu => uu?.name).includes(u.name));
+
+      for (const u of upgradesRemoved) {
+        const removed = upgradeable.removeUpgrade(u);
+        if (removed && !disableMessages) {
+          this._showUpgradeRemovedMessage(u);
+        }
+      }
+
+      for (const u of upgradesAdded) {
+        const added = upgradeable.addUpgrade(u);
+        if (added && !disableMessages) {
+          this._showUpgradeSuccessMessage(u);
+        }
+        if (!added) {
+          this.player?.showMessage(
+            `You must remove a ${u.name} (either it is duplicate or there is no available slot).`
+          );
+        }
+      }
+
+      this._upgradeTimeout = undefined;
+    }, 500);
   }
 
-  _processCaptainUpgradeRemovedFromZone(card: Card) {
-    const cardDetails = card.getCardDetails();
-    if (!cardDetails.tags.includes(Tags.SwashCard)) {
+  private _resourceTimeout?: number;
+  private _updateResources(zone: SwashZone, disableMessages = false) {
+    if (this._resourceTimeout) {
       return;
     }
-    const upgrade = UpgradeManager.getUpgradeByCard(cardDetails);
-    if (upgrade && upgrade instanceof CaptainUpgrade) {
-      if (this.captain?.removeUpgrade(upgrade)) {
-        this._showUpgradeRemovedMessage(upgrade);
+
+    this._resourceTimeout = setTimeout(() => {
+      const allCardDetails = CardHelper.getAllCardDetailsInZone(zone.zone, Tags.Resource, false);
+      const allResources = allCardDetails
+        .map(c => Resource.getFromCardDetail(c))
+        .reduce((pv, cv) => {
+          const idx = Resources[cv];
+          pv[idx] = (pv[idx] || 0) + 1;
+          return pv;
+        }, {} as { [key: string]: number });
+
+      const changes: Array<string> = [];
+      for (const r in Resources) {
+        const diff = (allResources[r] || 0) - (this.resources[r] || 0);
+        if (diff !== 0) {
+          changes.push(`${r}: ${diff > 0 ? '+' : ''}${diff.toString()}`);
+        }
       }
-    }
+      if (changes.length) {
+        this.resources = allResources;
+        world.broadcastChatMessage(`${this.player?.getName()}'s resources changed: ${changes.join(', ')}.`, this.color);
+      }
+
+      this._resourceTimeout = undefined;
+    }, 1000);
   }
 
-  _createLabel(text: string, relativeX: number, relativeY: number) {
+  private _createLabel(text: string, relativeX: number, relativeY: number) {
     const position = this.centerPoint.add(
       new Vector((this.isRotated ? -1 : 1) * relativeX, (this.isRotated ? -1 : 1) * relativeY, 0)
     );
@@ -325,7 +297,7 @@ export class SwashPlayer {
     return label;
   }
 
-  _renderScreenUi() {
+  private _renderScreenUi() {
     const container = new LayoutBox();
 
     const backdrop = new Border().setColor(Colors.black);

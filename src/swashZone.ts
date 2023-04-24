@@ -44,6 +44,10 @@ export class SwashZone {
     this.zone = this._create();
     this._line = this._drawLines();
     this._label = this._createLabel();
+    this.cards = this.zone
+      .getOverlappingObjects()
+      .filter(c => c instanceof Card)
+      .map(c => c as Card);
   }
 
   setOnCardEnter(fn: (card: Card) => void) {
@@ -76,7 +80,7 @@ export class SwashZone {
     this._label?.destroy();
   }
 
-  _create() {
+  private _create() {
     const zone = world.createZone(this.centerPoint.add([0, 0, 10]));
     zone.setScale([this.height, this.width, 20]);
     const colorWithHalfAlpha = new Color(
@@ -105,7 +109,7 @@ export class SwashZone {
     return zone;
   }
 
-  _drawLines() {
+  private _drawLines() {
     const line = new DrawingLine();
     line.thickness = this.thickness;
     line.color = this.playerColor ?? new Color(1, 1, 1);
@@ -121,7 +125,7 @@ export class SwashZone {
     return line;
   }
 
-  _createLabel() {
+  private _createLabel() {
     if (this.label) {
       const xDelta = (this.isRotated ? -1 : 1) * (this.height / 2 - 2);
       const position = this.centerPoint.add(new Vector(xDelta, 0, 0));
