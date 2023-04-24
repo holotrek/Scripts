@@ -33,6 +33,10 @@ export class Resource {
     }
   }
 
+  static fromName(name: string): Resources {
+    return Resources[name as keyof typeof Resources];
+  }
+
   static getName(resource: Resources): string {
     return Resources[resource];
   }
@@ -73,10 +77,10 @@ export class Resource {
   }
 
   static getFromGameObject(obj: GameObject): Resources {
-    return Resources[obj.getTemplateName() as keyof typeof Resources];
+    return Resource.fromName(obj.getTemplateName());
   }
 
   static getFromCardDetail(card: CardDetails): Resources {
-    return Resources[card.name as keyof typeof Resources];
+    return Resource.fromName(card.name);
   }
 }

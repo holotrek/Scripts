@@ -1,10 +1,12 @@
-import { Border, Card, DrawingLine, GameObject, LayoutBox, Player, ScreenUIElement, SnapPoint, Text, Vector, VerticalBox, world, Zone } from '@tabletop-playground/api';
+import { Border, Button, Card, DrawingLine, GameObject, HorizontalAlignment, HorizontalBox, ImageWidget, LayoutBox, Player, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
 import { CaptainBehavior } from './behaviors/captain';
 import { CaptainManager } from './managers/captainManager';
 import { CardHelper } from './cardHelper';
-import { Colors, Tags } from './constants';
+import { Colors, SWASH_PACKAGE_ID, Tags } from './constants';
+import { ImageStatRow } from './ui/statRow';
 import { IUpgradeable } from './interfaces/upgradeable';
 import { Resource, Resources } from './resources';
+import { ResourceManager } from './managers/resourceManager';
 import { ShipBehavior } from './behaviors/ship';
 import { ShipManager } from './managers/shipManager';
 import { SwashZone } from './swashZone';
@@ -31,9 +33,12 @@ const DRAW_DELTA_Y = -20;
 const DISCARD_DELTA_X = -4;
 const DISCARD_DELTA_Y = 20;
 
+const RESOURCE_DELTA_X = 10;
+const RESOURCE_DELTA_Y = -20;
+
 export class SwashPlayer {
-  private _lines: DrawingLine[] = [];
-  private _screenUIidx: number | undefined;
+  private _screenUIidx?: number;
+  private _screenUI?: ScreenUIElement;
 
   captain?: CaptainBehavior;
   player?: Player;
@@ -280,10 +285,24 @@ export class SwashPlayer {
       if (changes.length) {
         this.resources = allResources;
         world.broadcastChatMessage(`${this.player?.getName()}'s resources changed: ${changes.join(', ')}.`, this.color);
+        this._renderScreenUi();
       }
 
       this._resourceTimeout = undefined;
     }, 1000);
+  }
+
+  private _removeResource(resource: Resources) {
+    console.log(`removing resource ${Resource.getName(resource)}`);
+  }
+
+  private _addResource(resource: Resources) {
+    const deltaX = (this.isRotated ? -1 : 1) * RESOURCE_DELTA_X;
+    const deltaY = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_Y + resource);
+    const pos = this.centerPoint.add(new Vector(deltaX, deltaY, 0));
+    console.log(pos);
+    ResourceManager.resourceContainers[resource].takeAt(0, pos, true, true);
+    console.log(`adding resource ${Resource.getName(resource)}`);
   }
 
   private _createLabel(text: string, relativeX: number, relativeY: number) {
@@ -306,24 +325,82 @@ export class SwashPlayer {
     const column = new VerticalBox();
     backdrop.setChild(column);
 
-    column.addChild(new Text().setText('Resources:'));
+    const header = new HorizontalBox();
+    column.addChild(header);
+    header.addChild(new Text().setText('Resources:').setFontSize(22));
 
-    const screenUi = new ScreenUIElement();
-    screenUi.relativePositionX = true;
-    screenUi.relativePositionY = true;
-    screenUi.relativeWidth = true;
-    screenUi.relativeHeight = true;
-    screenUi.anchorX = 0.5;
-    screenUi.anchorY = 1;
-    screenUi.positionX = 0.5;
-    screenUi.positionY = 1;
-    screenUi.width = 0.5;
-    screenUi.height = 0.2;
-    screenUi.widget = container;
-    if (this._screenUIidx === undefined) {
-      this._screenUIidx = world.addScreenUI(screenUi);
-    } else {
-      world.setScreenUI(this._screenUIidx, screenUi);
+    const resourceContainer = new HorizontalBox();
+    column.addChild(resourceContainer, 1);
+
+    const conversionContainer = new HorizontalBox()
+      .setHorizontalAlignment(HorizontalAlignment.Fill)
+      .setVerticalAlignment(VerticalAlignment.Fill);
+    column.addChild(conversionContainer, 1);
+
+    const conversionBorder = new Border().setColor(Colors.blue);
+    conversionContainer.addChild(conversionBorder, 1);
+
+    const conversionBox = new HorizontalBox()
+      .setHorizontalAlignment(HorizontalAlignment.Center)
+      .setVerticalAlignment(VerticalAlignment.Center);
+    conversionBorder.setChild(conversionBox);
+
+    conversionBox.addChild(new Text().setText('Resource Conversion TBD').setFontSize(24), 1);
+
+    for (const r in Resources) {
+      if (isNaN(+r) && r !== Resource.getName(Resources.None)) {
+        const resource = Resource.fromName(r);
+        const resourceBox = new VerticalBox();
+        resourceContainer.addChild(resourceBox, 1);
+
+        const imageBorder = new Border().setColor(Resource.getColor(resource));
+        resourceBox.addChild(imageBorder, 1);
+
+        const imageContainer = new HorizontalBox()
+          .setHorizontalAlignment(HorizontalAlignment.Center)
+          .setVerticalAlignment(VerticalAlignment.Center);
+        imageBorder.setChild(imageContainer);
+
+        const val = this.resources[r] || 0;
+        const image = new ImageWidget().setImage(Resource.getImage(resource), SWASH_PACKAGE_ID).setImageSize(0, 72);
+        const subBtn = new Button().setText('-');
+        const addBtn = new Button().setText('+');
+        subBtn.onClicked.add(() => this._removeResource(resource));
+        addBtn.onClicked.add(() => this._addResource(resource));
+
+        imageContainer.addChild(subBtn, 0.25);
+        imageContainer.addChild(image, 0.5);
+        imageContainer.addChild(addBtn, 0.25);
+
+        const statBorder = new Border().setColor(Resource.getColor(resource));
+        resourceBox.addChild(statBorder);
+
+        const statBox = new HorizontalBox()
+          .setHorizontalAlignment(HorizontalAlignment.Center)
+          .setVerticalAlignment(VerticalAlignment.Center);
+        statBorder.setChild(statBox);
+
+        const text = new Text().setText(`${r}: ${val}`).setTextColor(Resource.getBgColor(resource)).setFontSize(16);
+        statBox.addChild(text, 1);
+      }
     }
+
+    if (this._screenUI) {
+      world.removeScreenUIElement(this._screenUI);
+    }
+
+    this._screenUI = new ScreenUIElement();
+    this._screenUI.relativePositionX = true;
+    this._screenUI.relativePositionY = true;
+    this._screenUI.relativeWidth = true;
+    this._screenUI.relativeHeight = true;
+    this._screenUI.anchorX = 0.5;
+    this._screenUI.anchorY = 1;
+    this._screenUI.positionX = 0.5;
+    this._screenUI.positionY = 1;
+    this._screenUI.width = 0.5;
+    this._screenUI.height = 0.2;
+    this._screenUI.widget = container;
+    this._screenUIidx = world.addScreenUI(this._screenUI);
   }
 }
