@@ -37,12 +37,13 @@ const RESOURCE_DELTA_X = 24;
 const RESOURCE_DELTA_Y = -22;
 
 export class SwashPlayer {
-  private _screenUIidx?: number;
   private _screenUI?: ScreenUIElement;
+  private _optimisticResources: { [key: string]: number } = {};
 
   captain?: CaptainBehavior;
   player?: Player;
   zones: SwashZone[] = [];
+  playerZone?: SwashZone;
   ship?: ShipBehavior;
   playerInfo?: GameObject;
   resources: { [key: string]: number } = {};
@@ -103,9 +104,10 @@ export class SwashPlayer {
       PLAYER_AREA_WIDTH,
       this.isRotated
     );
+    this.zones.push(zone);
+    this.playerZone = zone;
     zone.setOnCardEnter(card => this._processShipPlacedInZone(card));
     this._assignZoneObjects(zone.zone);
-    this.zones.push(zone);
     for (const c of zone.zone.getOverlappingObjects()) {
       if (c instanceof Card) {
         if (c.getTags().includes(Tags.Resource)) {
@@ -260,8 +262,11 @@ export class SwashPlayer {
   }
 
   private _resourceTimeout?: number;
-  private _updateResources(zone: SwashZone, disableMessages = false) {
+  private _updateResources(zone?: SwashZone, disableMessages = false) {
     if (this._resourceTimeout) {
+      return;
+    }
+    if (!zone) {
       return;
     }
 
@@ -278,13 +283,21 @@ export class SwashPlayer {
       const changes: Array<string> = [];
       for (const r in Resources) {
         const diff = (allResources[r] || 0) - (this.resources[r] || 0);
+        console.log(diff);
         if (diff !== 0) {
           changes.push(`${r}: ${diff > 0 ? '+' : ''}${diff.toString()}`);
         }
       }
+
       if (changes.length) {
-        this.resources = allResources;
-        world.broadcastChatMessage(`${this.player?.getName()}'s resources changed: ${changes.join(', ')}.`, this.color);
+        this.resources = { ...allResources };
+        this._optimisticResources = { ...allResources };
+        if (!disableMessages) {
+          world.broadcastChatMessage(
+            `${this.player?.getName()}'s resources changed: ${changes.join(', ')}.`,
+            this.color
+          );
+        }
         this._renderScreenUi();
       }
 
@@ -293,19 +306,37 @@ export class SwashPlayer {
   }
 
   private _removeResource(resource: Resources) {
-    console.log(`removing resource ${Resource.getName(resource)}`);
+    const name = Resource.getName(resource);
+    const existing = (this.playerZone?.zone?.getOverlappingObjects() || [])
+      .filter(c => c instanceof Card)
+      .map(c => c as Card)
+      .filter(c => c.getTemplateName() === name);
+    if (existing.length) {
+      const firstCard = existing[0];
+      if (firstCard.getStackSize() > 1) {
+        firstCard.takeCards(1)?.destroy();
+      } else {
+        firstCard.destroy();
+      }
+      this._optimisticResources[name] = Math.max((this._optimisticResources[name] || 0) - 1, 0);
+      this._renderScreenUi();
+      this._updateResources(this.playerZone);
+    }
   }
 
   private _addResource(resource: Resources) {
     const deltaX = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_X - 5 * Math.floor((resource - 1) / 4));
     const deltaY = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_Y + 5 * Math.floor((resource - 1) % 4));
     const pos = this.centerPoint.add(new Vector(deltaX, deltaY, 20));
-    console.log(pos);
-    const token = ResourceManager.resourceContainers[resource].takeAt(0, pos, true, true);
+    const token = ResourceManager.resourceContainers[resource].takeAt(0, pos, false, true);
     if (this.isRotated && token) {
       token.setRotation([0, 180, 0]);
     }
-    console.log(`adding resource ${Resource.getName(resource)}`);
+
+    const name = Resource.getName(resource);
+    this._optimisticResources[name] = (this._optimisticResources[name] || 0) + 1;
+    this._renderScreenUi();
+    this._updateResources(this.playerZone);
   }
 
   private _createLabel(text: string, relativeX: number, relativeY: number) {
@@ -364,7 +395,7 @@ export class SwashPlayer {
           .setVerticalAlignment(VerticalAlignment.Center);
         imageBorder.setChild(imageContainer);
 
-        const val = this.resources[r] || 0;
+        const val = this._optimisticResources[r] || 0;
         const image = new ImageWidget().setImage(Resource.getImage(resource), SWASH_PACKAGE_ID).setImageSize(0, 72);
         const subBtn = new Button().setText('-');
         const addBtn = new Button().setText('+');
@@ -405,6 +436,6 @@ export class SwashPlayer {
     this._screenUI.height = 0.2;
     this._screenUI.widget = container;
     this._screenUI.players.setPlayerSlots([this.playerIndex]);
-    this._screenUIidx = world.addScreenUI(this._screenUI);
+    world.addScreenUI(this._screenUI);
   }
 }
