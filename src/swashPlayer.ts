@@ -1,4 +1,4 @@
-import { Border, Button, Card, DrawingLine, GameObject, HorizontalAlignment, HorizontalBox, ImageWidget, LayoutBox, Player, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
+import { Border, Button, Card, DrawingLine, GameObject, HorizontalAlignment, HorizontalBox, ImageWidget, LayoutBox, Player, Rotator, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
 import { CaptainBehavior } from './behaviors/captain';
 import { CaptainManager } from './managers/captainManager';
 import { CardHelper } from './cardHelper';
@@ -33,8 +33,8 @@ const DRAW_DELTA_Y = -20;
 const DISCARD_DELTA_X = -4;
 const DISCARD_DELTA_Y = 20;
 
-const RESOURCE_DELTA_X = 10;
-const RESOURCE_DELTA_Y = -20;
+const RESOURCE_DELTA_X = 24;
+const RESOURCE_DELTA_Y = -22;
 
 export class SwashPlayer {
   private _screenUIidx?: number;
@@ -297,11 +297,14 @@ export class SwashPlayer {
   }
 
   private _addResource(resource: Resources) {
-    const deltaX = (this.isRotated ? -1 : 1) * RESOURCE_DELTA_X;
-    const deltaY = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_Y + resource);
-    const pos = this.centerPoint.add(new Vector(deltaX, deltaY, 0));
+    const deltaX = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_X - 5 * Math.floor((resource - 1) / 4));
+    const deltaY = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_Y + 5 * Math.floor((resource - 1) % 4));
+    const pos = this.centerPoint.add(new Vector(deltaX, deltaY, 20));
     console.log(pos);
-    ResourceManager.resourceContainers[resource].takeAt(0, pos, true, true);
+    const token = ResourceManager.resourceContainers[resource].takeAt(0, pos, true, true);
+    if (this.isRotated && token) {
+      token.setRotation([0, 180, 0]);
+    }
     console.log(`adding resource ${Resource.getName(resource)}`);
   }
 
@@ -401,6 +404,7 @@ export class SwashPlayer {
     this._screenUI.width = 0.5;
     this._screenUI.height = 0.2;
     this._screenUI.widget = container;
+    this._screenUI.players.setPlayerSlots([this.playerIndex]);
     this._screenUIidx = world.addScreenUI(this._screenUI);
   }
 }
