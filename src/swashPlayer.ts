@@ -1,11 +1,10 @@
-import { Border, Button, Card, DrawingLine, GameObject, HorizontalAlignment, HorizontalBox, ImageWidget, LayoutBox, Player, Rotator, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
+import { Border, Button, Card, GameObject, HorizontalAlignment, HorizontalBox, ImageButton, ImageWidget, LayoutBox, Panel, Player, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
 import { CaptainBehavior } from './behaviors/captain';
 import { CaptainManager } from './managers/captainManager';
 import { CardHelper } from './cardHelper';
 import { Colors, SWASH_PACKAGE_ID, Tags } from './constants';
-import { ImageStatRow } from './ui/statRow';
 import { IUpgradeable } from './interfaces/upgradeable';
-import { Resource, Resources } from './resources';
+import { Resource, ResourceConverter, Resources } from './resources';
 import { ResourceManager } from './managers/resourceManager';
 import { ShipBehavior } from './behaviors/ship';
 import { ShipManager } from './managers/shipManager';
@@ -39,6 +38,7 @@ const RESOURCE_DELTA_Y = -22;
 export class SwashPlayer {
   private _screenUI?: ScreenUIElement;
   private _optimisticResources: { [key: string]: number } = {};
+  private _converter: ResourceConverter;
 
   captain?: CaptainBehavior;
   player?: Player;
@@ -65,6 +65,8 @@ export class SwashPlayer {
     public centerPoint: Vector,
     public isRotated: boolean
   ) {
+    this._converter = new ResourceConverter();
+    this._converter.onCalculationChanged(() => this._renderScreenUi());
     this._renderScreenUi();
   }
 
@@ -283,7 +285,6 @@ export class SwashPlayer {
       const changes: Array<string> = [];
       for (const r in Resources) {
         const diff = (allResources[r] || 0) - (this.resources[r] || 0);
-        console.log(diff);
         if (diff !== 0) {
           changes.push(`${r}: ${diff > 0 ? '+' : ''}${diff.toString()}`);
         }
@@ -305,32 +306,63 @@ export class SwashPlayer {
     }, 1000);
   }
 
-  private _removeResource(resource: Resources) {
+  private _convertResources() {
+    const owned = this.resources[this._converter.outputName] || 0;
+    if (owned < this._converter.outputAmount) {
+      this.player?.showMessage(
+        `You don't have ${this._converter.outputAmount} ${this._converter.outputName} to spend!`
+      );
+      return;
+    }
+
+    this._removeResource(this._converter.output, this._converter.outputAmount);
+    this._addResource(this._converter.input, this._converter.inputAmount);
+  }
+
+  private _removeResource(resource: Resources, amount = 1) {
     const name = Resource.getName(resource);
     const existing = (this.playerZone?.zone?.getOverlappingObjects() || [])
       .filter(c => c instanceof Card)
       .map(c => c as Card)
       .filter(c => c.getTemplateName() === name);
-    if (existing.length) {
-      const firstCard = existing[0];
-      if (firstCard.getStackSize() > 1) {
-        firstCard.takeCards(1)?.destroy();
+
+    let remaining = amount;
+    for (const c of existing) {
+      const size = c.getStackSize();
+      const removeCount = Math.min(size, remaining);
+      console.log(removeCount);
+      if (size > 1 && size < removeCount) {
+        c.takeCards(removeCount)?.destroy();
       } else {
-        firstCard.destroy();
+        c.destroy();
       }
-      this._optimisticResources[name] = Math.max((this._optimisticResources[name] || 0) - 1, 0);
-      this._renderScreenUi();
-      this._updateResources(this.playerZone);
+
+      remaining -= removeCount;
+      if (remaining < 1) {
+        break;
+      }
     }
+
+    this._optimisticResources[name] = Math.max((this._optimisticResources[name] || 0) - amount, 0);
+    this._renderScreenUi();
+    this._updateResources(this.playerZone);
   }
 
-  private _addResource(resource: Resources) {
+  private _addResource(resource: Resources, amount = 1) {
     const deltaX = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_X - 5 * Math.floor((resource - 1) / 4));
     const deltaY = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_Y + 5 * Math.floor((resource - 1) % 4));
     const pos = this.centerPoint.add(new Vector(deltaX, deltaY, 20));
-    const token = ResourceManager.resourceContainers[resource].takeAt(0, pos, false, true);
-    if (this.isRotated && token) {
-      token.setRotation([0, 180, 0]);
+    const container = ResourceManager.resourceContainers[resource];
+    const token = container.takeAt(0, pos);
+    if (token) {
+      for (let i = 0; i < amount; i++) {
+        world.createObjectFromJSON(token.toJSONString(), pos);
+      }
+      container.addObjects([token]);
+      if (this.isRotated) {
+        token.setRotation([0, 180, 0]);
+      }
+      token.onDestroyed.add(() => this._updateResources(this.playerZone));
     }
 
     const name = Resource.getName(resource);
@@ -350,73 +382,229 @@ export class SwashPlayer {
     return label;
   }
 
+  private _createResourceControl(name: string) {
+    const resource = Resource.fromName(name);
+    const resourceBox = new VerticalBox();
+
+    const imageBorder = new Border().setColor(Resource.getColor(resource));
+    resourceBox.addChild(imageBorder, 1);
+
+    const imageContainer = new HorizontalBox()
+      .setHorizontalAlignment(HorizontalAlignment.Center)
+      .setVerticalAlignment(VerticalAlignment.Center);
+    imageBorder.setChild(imageContainer);
+
+    const val = this._optimisticResources[name] || 0;
+    const image = new ImageWidget().setImage(Resource.getImage(resource), SWASH_PACKAGE_ID).setImageSize(0, 72);
+    const subBtn = new Button().setText('-');
+    const addBtn = new Button().setText('+');
+    subBtn.onClicked.add(() => this._removeResource(resource));
+    addBtn.onClicked.add(() => this._addResource(resource));
+
+    imageContainer.addChild(subBtn, 0.25);
+    imageContainer.addChild(image, 0.5);
+    imageContainer.addChild(addBtn, 0.25);
+
+    const statBorder = new Border().setColor(Resource.getColor(resource));
+    resourceBox.addChild(statBorder);
+
+    const statBox = new HorizontalBox()
+      .setHorizontalAlignment(HorizontalAlignment.Center)
+      .setVerticalAlignment(VerticalAlignment.Center);
+    statBorder.setChild(statBox);
+
+    const text = new Text().setText(`${name}: ${val}`).setTextColor(Resource.getBgColor(resource)).setFontSize(16);
+    statBox.addChild(text, 1);
+
+    return resourceBox;
+  }
+
+  private _createConversionControl(name: string, isInput: boolean) {
+    const resource = Resource.fromName(name);
+    const resButton = new ImageButton().setImage(Resource.getImage(resource), SWASH_PACKAGE_ID);
+    if ((isInput && this._converter.input === resource) || (!isInput && this._converter.output === resource)) {
+      resButton.setEnabled(false);
+      resButton.setTintColor(Colors.red);
+    }
+
+    resButton.onClicked.add(() => {
+      if (isInput) {
+        this._converter.input = resource;
+      } else {
+        this._converter.output = resource;
+      }
+    });
+
+    return resButton;
+  }
+
   private _renderScreenUi() {
     const container = new LayoutBox();
 
+    // Overall backdrop
     const backdrop = new Border().setColor(Colors.black);
     container.setChild(backdrop);
 
+    // Overall Rows
     const column = new VerticalBox();
     backdrop.setChild(column);
 
-    const header = new HorizontalBox();
+    // Overall Header
+    const header = new Text().setText('Resources:').setFontSize(22);
     column.addChild(header);
-    header.addChild(new Text().setText('Resources:').setFontSize(22));
 
+    // Columns for resources
     const resourceContainer = new HorizontalBox();
-    column.addChild(resourceContainer, 1);
+    column.addChild(resourceContainer, 0.5);
 
-    const conversionContainer = new HorizontalBox()
-      .setHorizontalAlignment(HorizontalAlignment.Fill)
-      .setVerticalAlignment(VerticalAlignment.Fill);
+    // Resources
+    for (const r in Resources) {
+      if (isNaN(+r) && r !== Resource.getName(Resources.None)) {
+        resourceContainer.addChild(this._createResourceControl(r), 1);
+      }
+    }
+
+    // Columns for conversion tool
+    const conversionContainer = new HorizontalBox();
     column.addChild(conversionContainer, 1);
 
+    // Backdrop for conversion tool
     const conversionBorder = new Border().setColor(Colors.blue);
     conversionContainer.addChild(conversionBorder, 1);
 
-    const conversionBox = new HorizontalBox()
-      .setHorizontalAlignment(HorizontalAlignment.Center)
-      .setVerticalAlignment(VerticalAlignment.Center);
+    // Rows for conversion tool
+    const conversionBox = new VerticalBox();
     conversionBorder.setChild(conversionBox);
 
-    conversionBox.addChild(new Text().setText('Resource Conversion TBD').setFontSize(24), 1);
+    // Conversion tool header
+    const conversionToolHeader = new Text().setText('Conversion Tool:').setFontSize(16);
+    conversionBox.addChild(conversionToolHeader);
 
+    // Columns for conversion tool controls
+    const conversionControls = new HorizontalBox().setChildDistance(15);
+    conversionBox.addChild(conversionControls, 0.7);
+
+    // Two columns for output controls
+    const outputControls = new HorizontalBox()
+      .setChildDistance(5)
+      .setHorizontalAlignment(HorizontalAlignment.Center)
+      .setVerticalAlignment(VerticalAlignment.Center);
+    conversionControls.addChild(outputControls, 0.4);
+
+    // Output clear button
+    const outputClear = new Button().setText('X').setFontSize(32);
+    outputClear.onClicked.add(() => (this._converter.output = Resources.None));
+    outputControls.addChild(outputClear);
+
+    // Rows for conversion output
+    const outputResourceControls = new VerticalBox().setChildDistance(10);
+    outputControls.addChild(outputResourceControls, 1);
+
+    // Output buttons rows
+    const outputRow1 = new HorizontalBox().setChildDistance(10);
+    outputResourceControls.addChild(outputRow1, 1);
+    const outputRow2 = new HorizontalBox().setChildDistance(10);
+    outputResourceControls.addChild(outputRow2, 1);
+
+    // Output buttons
+    var i = 0;
     for (const r in Resources) {
       if (isNaN(+r) && r !== Resource.getName(Resources.None)) {
-        const resource = Resource.fromName(r);
-        const resourceBox = new VerticalBox();
-        resourceContainer.addChild(resourceBox, 1);
-
-        const imageBorder = new Border().setColor(Resource.getColor(resource));
-        resourceBox.addChild(imageBorder, 1);
-
-        const imageContainer = new HorizontalBox()
-          .setHorizontalAlignment(HorizontalAlignment.Center)
-          .setVerticalAlignment(VerticalAlignment.Center);
-        imageBorder.setChild(imageContainer);
-
-        const val = this._optimisticResources[r] || 0;
-        const image = new ImageWidget().setImage(Resource.getImage(resource), SWASH_PACKAGE_ID).setImageSize(0, 72);
-        const subBtn = new Button().setText('-');
-        const addBtn = new Button().setText('+');
-        subBtn.onClicked.add(() => this._removeResource(resource));
-        addBtn.onClicked.add(() => this._addResource(resource));
-
-        imageContainer.addChild(subBtn, 0.25);
-        imageContainer.addChild(image, 0.5);
-        imageContainer.addChild(addBtn, 0.25);
-
-        const statBorder = new Border().setColor(Resource.getColor(resource));
-        resourceBox.addChild(statBorder);
-
-        const statBox = new HorizontalBox()
-          .setHorizontalAlignment(HorizontalAlignment.Center)
-          .setVerticalAlignment(VerticalAlignment.Center);
-        statBorder.setChild(statBox);
-
-        const text = new Text().setText(`${r}: ${val}`).setTextColor(Resource.getBgColor(resource)).setFontSize(16);
-        statBox.addChild(text, 1);
+        const btn = this._createConversionControl(r, false);
+        if (i < 4) {
+          outputRow1.addChild(btn, 1);
+        } else {
+          outputRow2.addChild(btn, 1);
+        }
+        i++;
       }
+    }
+
+    // Amount backdrop
+    const amountBackdrop = new VerticalBox();
+    conversionControls.addChild(amountBackdrop, 0.2);
+
+    // Amount Wrapper
+    const amountWrapper = new VerticalBox()
+      .setHorizontalAlignment(HorizontalAlignment.Center)
+      .setVerticalAlignment(VerticalAlignment.Top);
+    amountBackdrop.addChild(amountWrapper, 1);
+
+    // Amount container
+    const amountControls = new HorizontalBox().setChildDistance(20).setVerticalAlignment(VerticalAlignment.Center);
+    amountWrapper.addChild(amountControls);
+    amountWrapper.addChild(new Text().setText('Transaction Amount'), 1);
+
+    const amountSub = new Button().setText('-').setFontSize(24);
+    amountSub.onClicked.add(() => this._converter.numTransactions--);
+    amountControls.addChild(amountSub, 1);
+
+    const amount = new Text().setText(this._converter.numTransactions.toString()).setFontSize(32);
+    amountControls.addChild(amount, 1);
+
+    const amountAdd = new Button().setText('+').setFontSize(24);
+    amountAdd.onClicked.add(() => this._converter.numTransactions++);
+    amountControls.addChild(amountAdd, 1);
+
+    // Two columns for output controls
+    const inputControls = new HorizontalBox()
+      .setChildDistance(5)
+      .setHorizontalAlignment(HorizontalAlignment.Center)
+      .setVerticalAlignment(VerticalAlignment.Center);
+    conversionControls.addChild(inputControls, 0.4);
+
+    // Rows for conversion input
+    const inputResourceControls = new VerticalBox().setChildDistance(10);
+    inputControls.addChild(inputResourceControls, 1);
+
+    // Input buttons rows
+    const inputRow1 = new HorizontalBox().setChildDistance(10);
+    inputResourceControls.addChild(inputRow1, 1);
+    const inputRow2 = new HorizontalBox().setChildDistance(10);
+    inputResourceControls.addChild(inputRow2, 1);
+
+    // Input buttons
+    var i = 0;
+    for (const r in Resources) {
+      if (isNaN(+r) && r !== Resource.getName(Resources.None)) {
+        const btn = this._createConversionControl(r, true);
+        if (i < 4) {
+          inputRow1.addChild(btn, 1);
+        } else {
+          inputRow2.addChild(btn, 1);
+        }
+        i++;
+      }
+    }
+
+    // Input clear button
+    const inputClear = new Button().setText('X').setFontSize(32);
+    inputClear.onClicked.add(() => (this._converter.input = Resources.None));
+    inputControls.addChild(inputClear);
+
+    // Convert Button Row
+    const convertButtonRow = new HorizontalBox()
+      .setHorizontalAlignment(HorizontalAlignment.Center)
+      .setVerticalAlignment(VerticalAlignment.Center);
+    conversionBox.addChild(convertButtonRow, 0.25);
+
+    // Convert Button
+    const btnText = `Convert ${this._converter.outputAmount} ${this._converter.outputName} to ${this._converter.inputAmount} ${this._converter.inputName}`;
+    const convertButton = new Button().setText(btnText).setFontSize(16);
+    convertButton.onClicked.add(() => this._convertResources());
+    convertButton.setVisible(this._converter.isValid);
+
+    convertButtonRow.addChild(convertButton, 0.25);
+
+    // Error
+    if (!this._converter.isValid) {
+      const errorBorder = new Border().setColor(Colors.red);
+      convertButtonRow.addChild(errorBorder, 0.25);
+      const error = new Text()
+        .setText(`Transaction is invalid. If both resources are selected, try increasing amount.`)
+        .setTextColor(Colors.black)
+        .setFontSize(14);
+      errorBorder.setChild(error);
     }
 
     if (this._screenUI) {
@@ -428,12 +616,12 @@ export class SwashPlayer {
     this._screenUI.relativePositionY = true;
     this._screenUI.relativeWidth = true;
     this._screenUI.relativeHeight = true;
-    this._screenUI.anchorX = 0.5;
+    this._screenUI.anchorX = 1;
     this._screenUI.anchorY = 1;
-    this._screenUI.positionX = 0.5;
-    this._screenUI.positionY = 1;
+    this._screenUI.positionX = 0.99;
+    this._screenUI.positionY = 0.99;
     this._screenUI.width = 0.5;
-    this._screenUI.height = 0.2;
+    this._screenUI.height = 0.3;
     this._screenUI.widget = container;
     this._screenUI.players.setPlayerSlots([this.playerIndex]);
     world.addScreenUI(this._screenUI);
