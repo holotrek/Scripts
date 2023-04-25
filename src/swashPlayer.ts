@@ -26,6 +26,9 @@ const SHIP_UPGRADES_DELTA_Y = 42;
 const SHIP_UPGRADES_WIDTH = 26;
 const SHIP_UPGRADES_HEIGHT = 50;
 
+const PLAYER_NAME_DELTA_X = -23;
+const PLAYER_NAME_DELTA_Y = 0;
+
 const DRAW_DELTA_X = -4;
 const DRAW_DELTA_Y = -20;
 
@@ -74,6 +77,7 @@ export class SwashPlayer {
     this._createPlayerZones();
     this._createLabel('Draw', DRAW_DELTA_X, DRAW_DELTA_Y);
     this._createLabel('Discard', DISCARD_DELTA_X, DISCARD_DELTA_Y);
+    this._createPlayerLabel(PLAYER_NAME_DELTA_X, PLAYER_NAME_DELTA_Y, 1);
   }
 
   cleanupPlayerArea() {
@@ -371,14 +375,19 @@ export class SwashPlayer {
     this._updateResources(this.playerZone);
   }
 
-  private _createLabel(text: string, relativeX: number, relativeY: number) {
+  private _createPlayerLabel(relativeX: number, relativeY: number, scale = 0.5) {
+    const label = this._createLabel(this.player?.getName() || this.faction, relativeX, relativeY, scale);
+    label.setColor(this.player?.getPlayerColor() || Colors.white);
+  }
+
+  private _createLabel(text: string, relativeX: number, relativeY: number, scale = 0.5) {
     const position = this.centerPoint.add(
       new Vector((this.isRotated ? -1 : 1) * relativeX, (this.isRotated ? -1 : 1) * relativeY, 0)
     );
     const label = world.createLabel(position);
     label.setText(text);
     label.setRotation([-90, this.isRotated ? 180 : 0, 0]);
-    label.setScale(0.5);
+    label.setScale(scale);
     return label;
   }
 
