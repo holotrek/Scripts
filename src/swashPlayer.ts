@@ -1,4 +1,4 @@
-import { Border, Button, Card, GameObject, HorizontalAlignment, HorizontalBox, ImageButton, ImageWidget, LayoutBox, Panel, Player, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
+import { Border, Button, Card, GameObject, HorizontalAlignment, HorizontalBox, ImageButton, ImageWidget, LayoutBox, Player, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
 import { CaptainBehavior } from './behaviors/captain';
 import { CaptainManager } from './managers/captainManager';
 import { CardHelper } from './cardHelper';
@@ -393,39 +393,47 @@ export class SwashPlayer {
 
   private _createResourceControl(name: string) {
     const resource = Resource.fromName(name);
+    const textColor = Resource.getBgColor(resource);
+    const boxColor = Resource.getColor(resource);
+
+    const border = new Border().setColor(boxColor);
+
     const resourceBox = new VerticalBox();
-
-    const imageBorder = new Border().setColor(Resource.getColor(resource));
-    resourceBox.addChild(imageBorder, 1);
-
-    const imageContainer = new HorizontalBox()
-      .setHorizontalAlignment(HorizontalAlignment.Center)
-      .setVerticalAlignment(VerticalAlignment.Center);
-    imageBorder.setChild(imageContainer);
-
-    const val = this._optimisticResources[name] || 0;
-    const image = new ImageWidget().setImage(Resource.getImage(resource), SWASH_PACKAGE_ID).setImageSize(0, 72);
-    const subBtn = new Button().setText('-');
-    const addBtn = new Button().setText('+');
-    subBtn.onClicked.add(() => this._removeResource(resource));
-    addBtn.onClicked.add(() => this._addResource(resource));
-
-    imageContainer.addChild(subBtn, 0.25);
-    imageContainer.addChild(image, 0.5);
-    imageContainer.addChild(addBtn, 0.25);
-
-    const statBorder = new Border().setColor(Resource.getColor(resource));
-    resourceBox.addChild(statBorder);
+    border.setChild(resourceBox);
 
     const statBox = new HorizontalBox()
       .setHorizontalAlignment(HorizontalAlignment.Center)
       .setVerticalAlignment(VerticalAlignment.Center);
-    statBorder.setChild(statBox);
+    resourceBox.addChild(statBox, 0.33);
 
-    const text = new Text().setText(`${name}: ${val}`).setTextColor(Resource.getBgColor(resource)).setFontSize(16);
+    const text = new Text().setText(name).setTextColor(textColor).setFontSize(16);
     statBox.addChild(text, 1);
 
-    return resourceBox;
+    const image = new ImageWidget().setImage(Resource.getImage(resource), SWASH_PACKAGE_ID).setImageSize(24, 0);
+    statBox.addChild(image, 0.25);
+
+    const controlContainer = new HorizontalBox()
+      .setHorizontalAlignment(HorizontalAlignment.Center)
+      .setVerticalAlignment(VerticalAlignment.Center);
+    resourceBox.addChild(controlContainer, 0.66);
+
+    const val = this._optimisticResources[name] || 0;
+    const subBtn = new Button().setText('-').setBold(true);
+    const addBtn = new Button().setText('+').setBold(true);
+    subBtn.onClicked.add(() => this._removeResource(resource));
+    addBtn.onClicked.add(() => this._addResource(resource));
+
+    const valAndImage = new VerticalBox()
+      .setHorizontalAlignment(HorizontalAlignment.Center)
+      .setVerticalAlignment(VerticalAlignment.Center);
+    const valText = new Text().setText(val.toString()).setTextColor(textColor).setFontSize(24).setBold(true);
+    valAndImage.addChild(valText, 0.66);
+
+    controlContainer.addChild(subBtn, 0.25);
+    controlContainer.addChild(valAndImage, 0.5);
+    controlContainer.addChild(addBtn, 0.25);
+
+    return border;
   }
 
   private _createConversionControl(name: string, isInput: boolean) {
@@ -459,12 +467,12 @@ export class SwashPlayer {
     backdrop.setChild(column);
 
     // Overall Header
-    const header = new Text().setText('Resources:').setFontSize(22);
+    const header = new Text().setText('Resources:').setFontSize(18);
     column.addChild(header);
 
     // Columns for resources
     const resourceContainer = new HorizontalBox();
-    column.addChild(resourceContainer, 0.5);
+    column.addChild(resourceContainer, 0.33);
 
     // Resources
     for (const r in Resources) {
@@ -475,7 +483,7 @@ export class SwashPlayer {
 
     // Columns for conversion tool
     const conversionContainer = new HorizontalBox();
-    column.addChild(conversionContainer, 1);
+    column.addChild(conversionContainer, 0.66);
 
     // Backdrop for conversion tool
     const conversionBorder = new Border().setColor(Colors.blue);
@@ -491,7 +499,7 @@ export class SwashPlayer {
 
     // Columns for conversion tool controls
     const conversionControls = new HorizontalBox().setChildDistance(15);
-    conversionBox.addChild(conversionControls, 0.7);
+    conversionBox.addChild(conversionControls, 0.75);
 
     // Two columns for output controls
     const outputControls = new HorizontalBox()
@@ -501,18 +509,18 @@ export class SwashPlayer {
     conversionControls.addChild(outputControls, 0.4);
 
     // Output clear button
-    const outputClear = new Button().setText('X').setFontSize(32);
+    const outputClear = new Button().setText('X').setFontSize(24);
     outputClear.onClicked.add(() => (this._converter.output = Resources.None));
     outputControls.addChild(outputClear);
 
     // Rows for conversion output
-    const outputResourceControls = new VerticalBox().setChildDistance(10);
+    const outputResourceControls = new VerticalBox().setChildDistance(5);
     outputControls.addChild(outputResourceControls, 1);
 
     // Output buttons rows
-    const outputRow1 = new HorizontalBox().setChildDistance(10);
+    const outputRow1 = new HorizontalBox().setChildDistance(5);
     outputResourceControls.addChild(outputRow1, 1);
-    const outputRow2 = new HorizontalBox().setChildDistance(10);
+    const outputRow2 = new HorizontalBox().setChildDistance(5);
     outputResourceControls.addChild(outputRow2, 1);
 
     // Output buttons
@@ -563,13 +571,13 @@ export class SwashPlayer {
     conversionControls.addChild(inputControls, 0.4);
 
     // Rows for conversion input
-    const inputResourceControls = new VerticalBox().setChildDistance(10);
+    const inputResourceControls = new VerticalBox().setChildDistance(5);
     inputControls.addChild(inputResourceControls, 1);
 
     // Input buttons rows
-    const inputRow1 = new HorizontalBox().setChildDistance(10);
+    const inputRow1 = new HorizontalBox().setChildDistance(5);
     inputResourceControls.addChild(inputRow1, 1);
-    const inputRow2 = new HorizontalBox().setChildDistance(10);
+    const inputRow2 = new HorizontalBox().setChildDistance(5);
     inputResourceControls.addChild(inputRow2, 1);
 
     // Input buttons
@@ -587,7 +595,7 @@ export class SwashPlayer {
     }
 
     // Input clear button
-    const inputClear = new Button().setText('X').setFontSize(32);
+    const inputClear = new Button().setText('X').setFontSize(24);
     inputClear.onClicked.add(() => (this._converter.input = Resources.None));
     inputControls.addChild(inputClear);
 
@@ -595,7 +603,7 @@ export class SwashPlayer {
     const convertButtonRow = new HorizontalBox()
       .setHorizontalAlignment(HorizontalAlignment.Center)
       .setVerticalAlignment(VerticalAlignment.Center);
-    conversionBox.addChild(convertButtonRow, 0.25);
+    conversionBox.addChild(convertButtonRow, 0.5);
 
     // Convert Button
     const btnText = `Convert ${this._converter.outputAmount} ${this._converter.outputName} to ${this._converter.inputAmount} ${this._converter.inputName}`;
@@ -603,7 +611,7 @@ export class SwashPlayer {
     convertButton.onClicked.add(() => this._convertResources());
     convertButton.setVisible(this._converter.isValid);
 
-    convertButtonRow.addChild(convertButton, 0.25);
+    convertButtonRow.addChild(convertButton, 1);
 
     // Error
     if (!this._converter.isValid) {

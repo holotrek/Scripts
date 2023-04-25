@@ -69,10 +69,13 @@ export class Resource {
   }
 
   static getBgColor(resource: Resources): Color {
-    if (resource === Resources.Sugar) {
-      return Colors.black;
-    } else {
-      return Colors.white;
+    switch (resource) {
+      case Resources.Sugar:
+      case Resources.Gold:
+      case Resources.Lumber:
+        return Colors.black;
+      default:
+        return Colors.white;
     }
   }
 
