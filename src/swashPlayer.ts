@@ -330,7 +330,6 @@ export class SwashPlayer {
     for (const c of existing) {
       const size = c.getStackSize();
       const removeCount = Math.min(size, remaining);
-      console.log(removeCount);
       if (size > 1 && size < removeCount) {
         c.takeCards(removeCount)?.destroy();
       } else {
@@ -351,22 +350,23 @@ export class SwashPlayer {
   private _addResource(resource: Resources, amount = 1) {
     const deltaX = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_X - 5 * Math.floor((resource - 1) / 4));
     const deltaY = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_Y + 5 * Math.floor((resource - 1) % 4));
-    const pos = this.centerPoint.add(new Vector(deltaX, deltaY, 20));
+    let pos = this.centerPoint.add(new Vector(deltaX, deltaY, 20));
     const container = ResourceManager.resourceContainers[resource];
     const token = container.takeAt(0, pos);
     if (token) {
       for (let i = 0; i < amount; i++) {
-        world.createObjectFromJSON(token.toJSONString(), pos);
+        pos = pos.add(new Vector(0, 0, 1));
+        const dupe = world.createObjectFromJSON(token.toJSONString(), pos);
+        dupe?.onDestroyed.add(() => this._updateResources(this.playerZone));
       }
       container.addObjects([token]);
       if (this.isRotated) {
         token.setRotation([0, 180, 0]);
       }
-      token.onDestroyed.add(() => this._updateResources(this.playerZone));
     }
 
     const name = Resource.getName(resource);
-    this._optimisticResources[name] = (this._optimisticResources[name] || 0) + 1;
+    this._optimisticResources[name] = (this._optimisticResources[name] || 0) + amount;
     this._renderScreenUi();
     this._updateResources(this.playerZone);
   }
