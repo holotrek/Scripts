@@ -486,7 +486,7 @@ export class SwashPlayer {
     conversionBorder.setChild(conversionBox);
 
     // Conversion tool header
-    const conversionToolHeader = new Text().setText('Conversion Tool:').setFontSize(16);
+    const conversionToolHeader = new Text().setText('Trading:').setFontSize(16);
     conversionBox.addChild(conversionToolHeader);
 
     // Columns for conversion tool controls

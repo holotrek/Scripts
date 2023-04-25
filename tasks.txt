@@ -18,10 +18,11 @@ x Check which crew are still on the original snap points and update upkeep accor
 - Crew not on original snap points, but on Captain card need to count for Defense
 - Crew on ship needs to count for Defense
 
-- Counters & buttons to change amount for resources
-  - Trading calculator
+x Counters & buttons to change amount for resources
+  x Trading calculator
 
 --Bonus:
+  - Use better colors for resources
   - Detect damage cubes and crew members on Ship(s) in the middle and show a UI of the current status
   - Attach (through some joint mechanism) the part token to each upgrade card for Captain
     - Unattach and place back in original position if moved out of upgrade zone
@@ -30,4 +31,4 @@ x Check which crew are still on the original snap points and update upkeep accor
 
 - Add damage cubes and some container to draw them from
 
-- Snap points for table items
+x Snap points for table items
