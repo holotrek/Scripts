@@ -52,7 +52,6 @@ export class CaptainBehavior implements IUpgradeable {
    * @param card The actual game card that this behavior is related to
    */
   constructor(public card: Card) {
-    this._renderStatsUi();
     this._recordSnapPoints();
   }
 
@@ -172,6 +171,10 @@ export class CaptainBehavior implements IUpgradeable {
         this.card.setUI(0, ui);
       } else {
         this.card.addUI(ui);
+      }
+    } else {
+      for (const i in this.card.getUIs()) {
+        this.card.removeUI(+i);
       }
     }
   }

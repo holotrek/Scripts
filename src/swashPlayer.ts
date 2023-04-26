@@ -1,4 +1,4 @@
-import { Border, Button, Card, GameObject, HorizontalAlignment, HorizontalBox, ImageButton, ImageWidget, LayoutBox, Player, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
+import { Border, Button, Card, GameObject, HorizontalAlignment, HorizontalBox, ImageButton, ImageWidget, Label, LayoutBox, Player, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
 import { CaptainBehavior } from './behaviors/captain';
 import { CaptainManager } from './managers/captainManager';
 import { CardHelper } from './cardHelper';
@@ -42,6 +42,7 @@ export class SwashPlayer {
   private _screenUI?: ScreenUIElement;
   private _optimisticResources: { [key: string]: number } = {};
   private _converter: ResourceConverter;
+  private _labels: Array<Label> = [];
 
   captain?: CaptainBehavior;
   player?: Player;
@@ -75,9 +76,9 @@ export class SwashPlayer {
 
   setupPlayerArea() {
     this._createPlayerZones();
-    this._createLabel('Draw', DRAW_DELTA_X, DRAW_DELTA_Y);
-    this._createLabel('Discard', DISCARD_DELTA_X, DISCARD_DELTA_Y);
-    this._createPlayerLabel(PLAYER_NAME_DELTA_X, PLAYER_NAME_DELTA_Y, 1);
+    this._labels.push(this._createLabel('Draw', DRAW_DELTA_X, DRAW_DELTA_Y));
+    this._labels.push(this._createLabel('Discard', DISCARD_DELTA_X, DISCARD_DELTA_Y));
+    this._labels.push(this._createPlayerLabel(PLAYER_NAME_DELTA_X, PLAYER_NAME_DELTA_Y, 1));
   }
 
   cleanupPlayerArea() {
@@ -85,6 +86,12 @@ export class SwashPlayer {
       z.remove();
     }
     this.playerInfo?.removeUI(0);
+    for (const l of this._labels) {
+      l.destroy();
+    }
+    if (this.captain) {
+      this.captain.isActive = false;
+    }
   }
 
   triggerCrewMoved(crewObj: GameObject, snapPoint?: SnapPoint) {
@@ -378,6 +385,7 @@ export class SwashPlayer {
   private _createPlayerLabel(relativeX: number, relativeY: number, scale = 0.5) {
     const label = this._createLabel(this.player?.getName() || this.faction, relativeX, relativeY, scale);
     label.setColor(this.player?.getPlayerColor() || Colors.white);
+    return label;
   }
 
   private _createLabel(text: string, relativeX: number, relativeY: number, scale = 0.5) {
