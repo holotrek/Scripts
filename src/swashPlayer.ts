@@ -94,9 +94,15 @@ export class SwashPlayer {
     }
   }
 
-  triggerCrewMoved(crewObj: GameObject, snapPoint?: SnapPoint) {
+  triggerCrewMoved(crewObj: GameObject, disableMessages = false) {
     if (this.player && this.captain) {
-      this.captain.triggerCrewMoved(this.player, crewObj, snapPoint);
+      const snapPoint = crewObj.getSnappedToPoint();
+      const objsUnder = world.sphereOverlap(crewObj.getPosition(), 1);
+      const onCaptain = !!objsUnder.find(o => o.getId() === this.captain?.card.getId());
+      const onShip = !!objsUnder.find(o => o.getId() === this.ship?.card.getId());
+
+      this.captain?.triggerCrewMoved(this.player, crewObj, onCaptain, snapPoint, disableMessages);
+      this.ship?.triggerCrewMoved(this.player, crewObj, onShip, disableMessages);
     }
   }
 

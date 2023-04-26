@@ -1,8 +1,10 @@
+import { GameObject, refObject } from '@tabletop-playground/api';
 import { PlayerManager } from '../managers/playerManager';
-import { refObject } from '@tabletop-playground/api';
 
-refObject.onMovementStopped.add(obj => {
+const identifyCrewPosition = (obj: GameObject, disableMessages = false) => {
   const player = PlayerManager.getPlayerFromTags(obj.getTags());
-  const snapPoint = obj.getSnappedToPoint();
-  player?.triggerCrewMoved(obj, snapPoint);
-});
+  player?.triggerCrewMoved(obj, disableMessages);
+};
+
+refObject.onMovementStopped.add(identifyCrewPosition);
+identifyCrewPosition(refObject, true);

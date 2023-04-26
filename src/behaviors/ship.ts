@@ -1,4 +1,4 @@
-import { Border, Card, GameObject, LayoutBox, Text, UIElement, UIPresentationStyle, Vector, VerticalBox } from '@tabletop-playground/api';
+import { Border, Card, GameObject, LayoutBox, Player, Text, UIElement, UIPresentationStyle, Vector, VerticalBox, world } from '@tabletop-playground/api';
 import { Colors } from '../constants';
 import { IUpgradeable } from '../interfaces/upgradeable';
 import { ShipSizes, ShipSpec } from '../specs/ship';
@@ -7,14 +7,13 @@ import { TextStatRow } from '../ui/statRow';
 import { Upgrade } from '../upgrade';
 
 export class ShipBehavior implements IUpgradeable {
-  upgrades: ShipUpgrade[] = [];
-  guardDetail = 0;
-  isOwned = false;
+  private _crewOnDefense: Array<string> = [];
+  private _upgrades: ShipUpgrade[] = [];
 
   get combatValue(): number {
     return (
       this.initialCombatValue +
-      Object.values(this.upgrades)
+      Object.values(this._upgrades)
         .map(x => x?.combatValue ?? 0)
         .reduce((pv, cv) => pv + cv, 0)
     );
@@ -23,16 +22,17 @@ export class ShipBehavior implements IUpgradeable {
   get defense(): number {
     return (
       this.initialDefense +
-      Object.values(this.upgrades)
+      Object.values(this._upgrades)
         .map(x => x?.defense ?? 0)
-        .reduce((pv, cv) => pv + cv, 0)
+        .reduce((pv, cv) => pv + cv, 0) +
+      this._crewOnDefense.length
     );
   }
 
   get cargo(): number {
     return (
       this.initialCargo +
-      Object.values(this.upgrades)
+      Object.values(this._upgrades)
         .map(x => x?.cargo ?? 0)
         .reduce((pv, cv) => pv + cv, 0)
     );
@@ -44,6 +44,7 @@ export class ShipBehavior implements IUpgradeable {
   initialCombatValue: number;
   initialDefense: number;
   initialCargo: number;
+  isOwned = false;
 
   /**
    * A ship in the Swash game
@@ -62,28 +63,46 @@ export class ShipBehavior implements IUpgradeable {
   }
 
   getUpgrades(): Array<Upgrade> {
-    return this.upgrades;
+    return this._upgrades;
   }
 
   addUpgrade(upgrade: ShipUpgrade): boolean {
-    if (this.upgrades.map(x => x.name).includes(upgrade.name)) {
+    if (this._upgrades.map(x => x.name).includes(upgrade.name)) {
       return false;
     }
 
-    this.upgrades.push(upgrade);
+    this._upgrades.push(upgrade);
     this._renderStatsUi();
     return true;
   }
 
   removeUpgrade(upgrade: ShipUpgrade) {
-    const idx = this.upgrades.findIndex(x => x.name === upgrade.name);
+    const idx = this._upgrades.findIndex(x => x.name === upgrade.name);
     if (idx > -1) {
-      this.upgrades = [...this.upgrades.slice(0, idx), ...this.upgrades.slice(idx + 1)];
+      this._upgrades = [...this._upgrades.slice(0, idx), ...this._upgrades.slice(idx + 1)];
       this._renderStatsUi();
       return true;
     }
 
     return false;
+  }
+
+  triggerCrewMoved(player: Player, crewObj: GameObject, isOnShip: boolean, disableMessages = false) {
+    const crewId = crewObj.getId();
+    if (isOnShip && !this._crewOnDefense.includes(crewId)) {
+      this._crewOnDefense.push(crewId);
+      this._renderStatsUi();
+
+      if (!disableMessages) {
+        world.broadcastChatMessage(`${player.getName()} added a crewmember to Ship defense.`, player.getPlayerColor());
+      }
+    } else if (!isOnShip) {
+      const idx = this._crewOnDefense.findIndex(c => c === crewId);
+      if (idx > -1) {
+        this._crewOnDefense.splice(idx, 1);
+        this._renderStatsUi();
+      }
+    }
   }
 
   private _renderStatsUi() {

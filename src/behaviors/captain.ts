@@ -8,6 +8,7 @@ import { Upgrade } from '../upgrade';
 
 export class CaptainBehavior implements IUpgradeable {
   private _isActive = false;
+  private _crewOnDefense: Array<string> = [];
 
   upgrades: CaptainUpgrade[] = [];
   initialCombatValue = 2;
@@ -32,7 +33,11 @@ export class CaptainBehavior implements IUpgradeable {
   }
 
   get defense(): number {
-    return this.initialDefense + this.upgrades.map(x => x?.defense ?? 0).reduce((pv, cv) => pv + cv, 0);
+    return (
+      this.initialDefense +
+      this.upgrades.map(x => x?.defense ?? 0).reduce((pv, cv) => pv + cv, 0) +
+      this._crewOnDefense.length
+    );
   }
 
   get precision(): number {
@@ -103,17 +108,41 @@ export class CaptainBehavior implements IUpgradeable {
     return false;
   }
 
-  triggerCrewMoved(player: Player, crewObj: GameObject, snapPoint?: SnapPoint) {
+  triggerCrewMoved(
+    player: Player,
+    crewObj: GameObject,
+    isOnCaptain: boolean,
+    snapPoint?: SnapPoint,
+    disableMessages = false
+  ) {
+    const crewId = crewObj.getId();
     if (snapPoint) {
       const upkeep = this.crewUpkeep[snapPoint.getIndex()];
-      world.broadcastChatMessage(
-        `${player.getName()} returned a crewmember to ${Resource.getName(upkeep.resource)} slot.`,
-        player.getPlayerColor()
-      );
-    } else {
-      world.broadcastChatMessage(`${player.getName()} moved a crewmember.`, player.getPlayerColor());
+      const idx = this._crewOnDefense.findIndex(c => c === crewId);
+      if (idx > -1) {
+        this._crewOnDefense.splice(idx, 1);
+      }
+      this._renderStatsUi();
+
+      if (!disableMessages) {
+        world.broadcastChatMessage(
+          `${player.getName()} returned a crewmember to ${Resource.getName(upkeep.resource)} slot.`,
+          player.getPlayerColor()
+        );
+      }
+    } else if (isOnCaptain && !this._crewOnDefense.includes(crewId)) {
+      this._crewOnDefense.push(crewId);
+      this._renderStatsUi();
+
+      if (!disableMessages) {
+        world.broadcastChatMessage(
+          `${player.getName()} added a crewmember to Captain defense.`,
+          player.getPlayerColor()
+        );
+      }
+    } else if (!isOnCaptain) {
+      this._renderStatsUi();
     }
-    this._renderStatsUi();
   }
 
   private _recordSnapPoints() {
@@ -156,7 +185,7 @@ export class CaptainBehavior implements IUpgradeable {
         if (this.isUpkeepRequired(i)) {
           const r = this.crewUpkeep[i].resource;
           column.addChild(
-            new ImageStatRow(Resource.getImage(r), Resource.getName(r), Resource.getBgColor(r), Resource.getColor(r))
+            new ImageStatRow(Resource.getImage(r), Resource.getName(r), Resource.getColor(r), Resource.getBgColor(r))
           );
         }
       }
