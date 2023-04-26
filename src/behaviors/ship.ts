@@ -1,9 +1,9 @@
 import { Border, Card, GameObject, LayoutBox, Player, Text, UIElement, UIPresentationStyle, Vector, VerticalBox, world } from '@tabletop-playground/api';
 import { Colors } from '../constants';
+import { ImageTextStatRow, TextStatRow } from '../ui/statRow';
 import { IUpgradeable } from '../interfaces/upgradeable';
 import { ShipSizes, ShipSpec } from '../specs/ship';
 import { ShipUpgrade } from '../shipUpgrade';
-import { TextStatRow } from '../ui/statRow';
 import { Upgrade } from '../upgrade';
 
 export class ShipBehavior implements IUpgradeable {
@@ -119,11 +119,13 @@ export class ShipBehavior implements IUpgradeable {
       const column = new VerticalBox();
       backdrop.setChild(column);
 
-      column.addChild(new Text().setText(`${this.name} Stats:`));
-      column.addChild(new TextStatRow('Health:', this.health.toString(), Colors.green, Colors.black));
-      column.addChild(new TextStatRow('CV:', this.combatValue.toString(), Colors.red));
-      column.addChild(new TextStatRow('Defense:', this.defense.toString(), Colors.blue));
-      column.addChild(new TextStatRow('Cargo:', this.cargo.toString(), Colors.gold, Colors.black));
+      column.addChild(new Text().setText(`${this.name} Stats:`).setFontSize(16));
+      column.addChild(
+        new ImageTextStatRow('Health:', 'Health.png', this.health.toString(), Colors.green, Colors.black)
+      );
+      column.addChild(new ImageTextStatRow('CV:', 'CV.png', this.combatValue.toString(), Colors.red));
+      column.addChild(new ImageTextStatRow('Defense:', 'Defense.png', this.defense.toString(), Colors.blue));
+      column.addChild(new ImageTextStatRow('Cargo:', 'Cargo.png', this.cargo.toString(), Colors.gold, Colors.black));
       column.addChild(new TextStatRow('Sink DMG:', (this.health - this.overkill).toString(), Colors.black));
       column.addChild(new TextStatRow('FATE Dice:', this.dice.toString(), Colors.black));
 
@@ -131,7 +133,7 @@ export class ShipBehavior implements IUpgradeable {
       ui.anchorY = 1.0;
       ui.position = new Vector(7.5, 0, 0);
       ui.presentationStyle = UIPresentationStyle.ViewAligned;
-      ui.scale = 0.5;
+      ui.scale = 0.3;
       ui.widget = container;
       if (this.card.getUIs().length) {
         this.card.setUI(0, ui);

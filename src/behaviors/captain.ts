@@ -1,7 +1,7 @@
 import { Border, Card, GameObject, LayoutBox, Player, SnapPoint, Text, UIElement, UIPresentationStyle, Vector, VerticalBox, world } from '@tabletop-playground/api';
 import { CaptainUpgrade, CaptainUpgradeLocation } from '../captainUpgrade';
 import { Colors, Tags } from '../constants';
-import { ImageStatRow, TextStatRow } from '../ui/statRow';
+import { ImageStatRow, ImageTextStatRow, TextStatRow } from '../ui/statRow';
 import { IUpgradeable } from '../interfaces/upgradeable';
 import { Resource, Resources } from '../resources';
 import { Upgrade } from '../upgrade';
@@ -166,13 +166,15 @@ export class CaptainBehavior implements IUpgradeable {
       const column = new VerticalBox();
       backdrop.setChild(column);
 
-      column.addChild(new Text().setText('Captain Stats:'));
-      column.addChild(new TextStatRow('CV:', this.combatValue.toString(), Colors.red));
-      column.addChild(new TextStatRow('Defense:', this.defense.toString(), Colors.blue));
-      column.addChild(new TextStatRow('Precision:', this.precision.toString(), Colors.pink, Colors.black));
+      column.addChild(new Text().setText('Captain Stats:').setFontSize(16));
+      column.addChild(new ImageTextStatRow('CV:', 'CV.png', this.combatValue.toString(), Colors.red));
+      column.addChild(new ImageTextStatRow('Defense:', 'Defense.png', this.defense.toString(), Colors.blue));
+      column.addChild(
+        new ImageTextStatRow('Precision:', 'Precision.png', this.precision.toString(), Colors.pink, Colors.black)
+      );
 
       column.addChild(new Border().setColor(Colors.white));
-      column.addChild(new Text().setText('Equipment:'));
+      column.addChild(new Text().setText('Equipment:').setFontSize(16));
       for (const u of this.upgrades) {
         if (u.location !== CaptainUpgradeLocation.Brain) {
           column.addChild(new ImageStatRow(u.locationImage, u.name, u.isWeapon ? Colors.red : Colors.blue));
@@ -180,7 +182,7 @@ export class CaptainBehavior implements IUpgradeable {
       }
 
       column.addChild(new Border().setColor(Colors.white));
-      column.addChild(new Text().setText('Upkeep:'));
+      column.addChild(new Text().setText('Upkeep:').setFontSize(16));
       for (let i = 0; i < this.crewUpkeep.length; i++) {
         if (this.isUpkeepRequired(i)) {
           const r = this.crewUpkeep[i].resource;
@@ -194,7 +196,7 @@ export class CaptainBehavior implements IUpgradeable {
       ui.anchorY = 1.0;
       ui.position = new Vector(10, 0, 0);
       ui.presentationStyle = UIPresentationStyle.ViewAligned;
-      ui.scale = 0.75;
+      ui.scale = 0.5;
       ui.widget = container;
       if (this.card.getUIs().length) {
         this.card.setUI(0, ui);
