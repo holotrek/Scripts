@@ -44,6 +44,8 @@ export class ShipBehavior implements IUpgradeable {
   initialCombatValue: number;
   initialDefense: number;
   initialCargo: number;
+  overkill: number;
+  dice: number;
   isOwned = false;
 
   /**
@@ -58,6 +60,8 @@ export class ShipBehavior implements IUpgradeable {
     this.initialCombatValue = spec.combatValue;
     this.initialDefense = spec.defense;
     this.initialCargo = spec.cargo;
+    this.overkill = spec.overkill;
+    this.dice = spec.dice;
     this._renderStatsUi();
     card.onMovementStopped.add(_ => this._renderStatsUi());
   }
@@ -116,9 +120,12 @@ export class ShipBehavior implements IUpgradeable {
       backdrop.setChild(column);
 
       column.addChild(new Text().setText(`${this.name} Stats:`));
+      column.addChild(new TextStatRow('Health:', this.health.toString(), Colors.green, Colors.black));
       column.addChild(new TextStatRow('CV:', this.combatValue.toString(), Colors.red));
       column.addChild(new TextStatRow('Defense:', this.defense.toString(), Colors.blue));
       column.addChild(new TextStatRow('Cargo:', this.cargo.toString(), Colors.gold, Colors.black));
+      column.addChild(new TextStatRow('Sink DMG:', (this.health - this.overkill).toString(), Colors.black));
+      column.addChild(new TextStatRow('FATE Dice:', this.dice.toString(), Colors.black));
 
       const ui = new UIElement();
       ui.anchorY = 1.0;

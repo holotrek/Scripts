@@ -15,8 +15,8 @@ x Check for upgrades already in zones when scripting is loaded
 x Check which crew are still on the original snap points and update upkeep accordingly
   x Show upkeep in UI
 
-- Crew not on original snap points, but on Captain card need to count for Defense
-- Crew on ship needs to count for Defense
+x Crew not on original snap points, but on Captain card need to count for Defense
+x Crew on ship needs to count for Defense
 
 x Counters & buttons to change amount for resources
   x Trading calculator

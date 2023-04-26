@@ -18,6 +18,7 @@ export class Colors {
   static pink = new Color(0.996, 0.514, 0.514);
   static blue = new Color(0.157, 0.157, 0.45);
   static gold = new Color(0.788, 0.6, 0.173);
+  static green = new Color(0.157, 0.45, 0.157);
 
   static lumber = new Color(0.05, 0.5, 0.25);
   static leather = new Color(0.29, 0.2, 0.07);

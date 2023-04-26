@@ -13,6 +13,8 @@ export class ShipSpec {
    * @param combatValue The starting Combat Value
    * @param defense The starting Defense
    * @param cargo The starting Cargo
+   * @param overkill The amount of HP that will cause the ship to sink
+   * @param dice The number of FATE dice that will affect the overall damage taken
    */
   constructor(
     public name: string,
@@ -20,6 +22,8 @@ export class ShipSpec {
     public health: number,
     public combatValue: number,
     public defense: number,
-    public cargo: number
+    public cargo: number,
+    public overkill: number,
+    public dice: number
   ) {}
 }
