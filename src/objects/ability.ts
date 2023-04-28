@@ -7,15 +7,18 @@ AbilityManager.registerCard(refCard);
 refCard.onCreated.add(AbilityManager.registerCard);
 
 const identifyAbilityPosition = (card: Card, disableMessages = false) => {
-  const ability = AbilityManager.getAbility(card.getId());
-  if (ability) {
-    const snapPoint = card.getSnappedToPoint();
-    if (snapPoint) {
-      const capt = CaptainManager.getCaptain(snapPoint.getParentObject().getId());
-      if (capt) {
-        const player = PlayerManager.getPlayerFromCaptain(capt);
-        if (player && player.player) {
-          capt.triggerAbilitySnapped(player.player, ability, snapPoint, disableMessages);
+  if (card.getStackSize() === 1) {
+    const ability = AbilityManager.getAbility(card.getId());
+    console.log(ability?.name);
+    if (ability) {
+      const snapPoint = card.getSnappedToPoint();
+      if (snapPoint) {
+        const capt = CaptainManager.getCaptain(snapPoint.getParentObject().getId());
+        if (capt) {
+          const player = PlayerManager.getPlayerFromCaptain(capt);
+          if (player && player.player) {
+            capt.triggerAbilitySnapped(player.player, ability, snapPoint, disableMessages);
+          }
         }
       }
     }

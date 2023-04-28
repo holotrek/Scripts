@@ -1,4 +1,4 @@
-import { Container, globalEvents, Player, world } from '@tabletop-playground/api';
+import { Button, Container, globalEvents, LayoutBox, Player, Rotator, UIElement, Vector, world } from '@tabletop-playground/api';
 import { PlayerManager } from './managers/playerManager';
 import { ResourceManager } from './managers/resourceManager';
 import { Resources } from './resources';
@@ -14,6 +14,35 @@ for (const z of world.getAllZones()) {
 for (const l of world.getAllLabels()) {
   l.destroy();
 }
+
+const tableHeight = world.getTableHeight();
+
+function createLabel(text: string, position: Vector, rotation?: Rotator, scale = 0.5) {
+  const label = world.createLabel(position);
+  label.setText(text);
+  label.setRotation(rotation ?? new Rotator(0, 0, 0));
+  label.setScale(scale);
+}
+
+function discardAndRedrawShips() {}
+
+function renderWorldUI() {
+  const container = new LayoutBox();
+
+  const button = new Button().setText('Discard and Redraw');
+  button.onClicked.add(discardAndRedrawShips);
+  container.setChild(button);
+
+  const ui = new UIElement();
+  ui.widget = container;
+  ui.position = new Vector(0, 26, tableHeight + 2);
+  ui.rotation = new Rotator(0, 90, 0);
+  world.addUI(ui);
+}
+
+createLabel('Ship Draw', new Vector(-15, 36, tableHeight), new Rotator(-90, 180, 0));
+createLabel('Ship Discard', new Vector(-15, -50, tableHeight), new Rotator(-90, 180, 0));
+renderWorldUI();
 
 /**
  * Event that will trigger when a player joins or switches seats, in order
