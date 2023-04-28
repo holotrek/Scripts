@@ -9,9 +9,9 @@ export class AbilityBehavior {
 
   name?: string;
   socket?: CaptainSocket;
+  canExhaust = false;
   faceUpStat?: AbilityStatSpec;
   faceDownStat?: AbilityStatSpec;
-  ui?: UIElement;
 
   get combatValueDelta() {
     return this.card.isFaceUp() ? this.faceUpStat?.combatValue || 0 : this.faceDownStat?.combatValue || 0;
@@ -49,43 +49,35 @@ export class AbilityBehavior {
   constructor(public card: Card, abilitySpec: AbilitySpec) {
     this.name = abilitySpec.name;
     this.socket = abilitySpec.socket;
+    this.canExhaust = abilitySpec.canExhaust;
     this.faceUpStat = abilitySpec.faceUpStat;
     this.faceDownStat = abilitySpec.faceDownStat;
-    card.onMovementStopped.add(() => this._repositionUI());
-  }
-
-  private _repositionUI() {
-    if (this.ui) {
-      this.ui.anchorY = 1.0;
-      this.ui.twoSided = true;
-      this.ui.position = new Vector(2, 0, this.card.isFaceUp() ? -1 : 1);
-      this.ui.rotation = new Rotator(0, 0, 180);
-      this.ui.scale = 0.3;
-      this.card.updateUI(this.ui);
-    }
   }
 
   private _renderStatsUi() {
-    if (this.equipped) {
-      const container = new LayoutBox();
+    const container = new LayoutBox();
+    container.setVisible(this.equipped && this.canExhaust);
 
-      const backdrop = new Border().setColor(Colors.black);
+    if (this.canExhaust) {
+      const color = this.exhausted ? Colors.red : Colors.green;
+      const backdrop = new Border().setColor(color);
       container.setChild(backdrop);
 
-      const button = new Button().setText(this.exhausted ? 'Unexhaust' : 'Exhaust');
+      const button = new Button().setText(this.exhausted ? 'Unexhaust' : 'Exhaust').setTextColor(color);
       button.onClicked.add(() => (this.exhausted = !this.exhausted));
       backdrop.setChild(button);
+    }
 
-      this.ui = new UIElement();
-      this._repositionUI();
-      this.ui.widget = container;
-      if (this.card.getUIs().length) {
-        this.card.setUI(0, this.ui);
-      } else {
-        this.card.addUI(this.ui);
-      }
+    const ui = new UIElement();
+    ui.anchorY = 1.0;
+    ui.position = new Vector(2, 0, -0.1);
+    ui.rotation = new Rotator(180, 180, 0);
+    ui.scale = 0.35;
+    ui.widget = container;
+    if (this.card.getUIs().length) {
+      this.card.setUI(0, ui);
     } else {
-      this.card.removeUI(0);
+      this.card.addUI(ui);
     }
   }
 }
