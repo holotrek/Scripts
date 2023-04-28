@@ -90,7 +90,7 @@ export class SwashPlayer {
       l.destroy();
     }
     if (this.captain) {
-      this.captain.isActive = false;
+      this.captain.player = undefined;
     }
   }
 
@@ -184,7 +184,7 @@ export class SwashPlayer {
     for (const o of allZoneObjs) {
       if (o instanceof Card && o.getTags().includes(Tags.CaptainSheet)) {
         this.captain = CaptainManager.registerCard(o);
-        this.captain.isActive = true;
+        this.captain.player = this.player;
       }
     }
 
@@ -532,9 +532,9 @@ export class SwashPlayer {
     outputControls.addChild(outputResourceControls, 1);
 
     // Output buttons rows
-    const outputRow1 = new HorizontalBox().setChildDistance(5);
+    const outputRow1 = new HorizontalBox().setChildDistance(15);
     outputResourceControls.addChild(outputRow1, 1);
-    const outputRow2 = new HorizontalBox().setChildDistance(5);
+    const outputRow2 = new HorizontalBox().setChildDistance(15);
     outputResourceControls.addChild(outputRow2, 1);
 
     // Output buttons
@@ -589,9 +589,9 @@ export class SwashPlayer {
     inputControls.addChild(inputResourceControls, 1);
 
     // Input buttons rows
-    const inputRow1 = new HorizontalBox().setChildDistance(5);
+    const inputRow1 = new HorizontalBox().setChildDistance(15);
     inputResourceControls.addChild(inputRow1, 1);
-    const inputRow2 = new HorizontalBox().setChildDistance(5);
+    const inputRow2 = new HorizontalBox().setChildDistance(15);
     inputResourceControls.addChild(inputRow2, 1);
 
     // Input buttons
@@ -649,10 +649,10 @@ export class SwashPlayer {
     this._screenUI.relativeHeight = true;
     this._screenUI.anchorX = 1;
     this._screenUI.anchorY = 1;
-    this._screenUI.positionX = 0.99;
-    this._screenUI.positionY = 0.99;
-    this._screenUI.width = 0.5;
-    this._screenUI.height = 0.3;
+    this._screenUI.positionX = 1;
+    this._screenUI.positionY = 1;
+    this._screenUI.width = 0.45;
+    this._screenUI.height = 0.275;
     this._screenUI.widget = container;
     this._screenUI.players.setPlayerSlots([this.playerIndex]);
     world.addScreenUI(this._screenUI);

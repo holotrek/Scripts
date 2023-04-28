@@ -1,13 +1,15 @@
+import { AbilityBehavior } from './ability';
+import { AbilityManager } from '../managers/abilityManager';
 import { Border, Card, GameObject, LayoutBox, Player, SnapPoint, Text, UIElement, UIPresentationStyle, Vector, VerticalBox, world } from '@tabletop-playground/api';
 import { CaptainUpgrade, CaptainUpgradeLocation } from '../captainUpgrade';
 import { Colors, Tags } from '../constants';
-import { ImageStatRow, ImageTextStatRow, TextStatRow } from '../ui/statRow';
+import { ImageStatRow, ImageTextStatRow } from '../ui/statRow';
 import { IUpgradeable } from '../interfaces/upgradeable';
 import { Resource, Resources } from '../resources';
 import { Upgrade } from '../upgrade';
 
 export class CaptainBehavior implements IUpgradeable {
-  private _isActive = false;
+  private _player?: Player;
   private _crewOnDefense: Array<string> = [];
 
   upgrades: CaptainUpgrade[] = [];
@@ -17,6 +19,7 @@ export class CaptainBehavior implements IUpgradeable {
   crew = 5;
   guardDetail = 0;
   upgradeSlotTokens: { [key: string]: GameObject | undefined } = {};
+  abilities: { ability?: AbilityBehavior; snapPoint?: SnapPoint; faceUp?: boolean }[] = [{}, {}, {}];
   crewUpkeep: { resource: Resources; snapPoint?: SnapPoint }[] = [
     { resource: Resources.None },
     { resource: Resources.Leather },
@@ -29,26 +32,36 @@ export class CaptainBehavior implements IUpgradeable {
   abilityLegsPoint?: SnapPoint;
 
   get combatValue(): number {
-    return this.initialCombatValue + this.upgrades.map(x => x?.combatValue ?? 0).reduce((pv, cv) => pv + cv, 0);
+    return (
+      this.initialCombatValue +
+      this.upgrades.map(x => x?.combatValue ?? 0).reduce((pv, cv) => pv + cv, 0) +
+      this.abilities.map(a => a.ability?.combatValueDelta || 0).reduce((pv, cv) => pv + cv, 0)
+    );
   }
 
   get defense(): number {
     return (
       this.initialDefense +
       this.upgrades.map(x => x?.defense ?? 0).reduce((pv, cv) => pv + cv, 0) +
-      this._crewOnDefense.length
+      this._crewOnDefense.length +
+      this.abilities.map(a => a.ability?.defenseDelta || 0).reduce((pv, cv) => pv + cv, 0)
     );
   }
 
   get precision(): number {
-    return this.initialPrecision + this.upgrades.map(x => x?.precision ?? 0).reduce((pv, cv) => pv + cv, 0);
+    return (
+      this.initialPrecision +
+      this.upgrades.map(x => x?.precision ?? 0).reduce((pv, cv) => pv + cv, 0) +
+      this.abilities.map(a => a.ability?.precisionDelta || 0).reduce((pv, cv) => pv + cv, 0)
+    );
   }
 
-  get isActive(): boolean {
-    return this._isActive;
+  get player(): Player | undefined {
+    return this._player;
   }
-  set isActive(isActive: boolean) {
-    this._isActive = isActive;
+  set player(p: Player | undefined) {
+    this._player = p;
+    this._recordSnapPoints();
     this._renderStatsUi();
   }
 
@@ -56,9 +69,7 @@ export class CaptainBehavior implements IUpgradeable {
    * A captain in the Swash game
    * @param card The actual game card that this behavior is related to
    */
-  constructor(public card: Card) {
-    this._recordSnapPoints();
-  }
+  constructor(public card: Card) {}
 
   isUpkeepRequired(idx: number) {
     const cu = this.crewUpkeep[idx];
@@ -145,19 +156,77 @@ export class CaptainBehavior implements IUpgradeable {
     }
   }
 
+  triggerAbilitySnapped(player: Player, ability: AbilityBehavior, snapPoint: SnapPoint, disableMessages = false) {
+    const slot = this.abilities.find(a => a.snapPoint?.getIndex() === snapPoint.getIndex());
+    if (slot) {
+      slot.ability = ability;
+      slot.faceUp = ability.card.isFaceUp();
+      ability.equipped = true;
+
+      ability.card.onMovementStopped.add(card => {
+        if (!card.getSnappedToPoint()) {
+          this._abilityRemoved(player, ability);
+        } else if (card.isFaceUp() !== slot.faceUp) {
+          this._abilityFlipped(player, ability);
+        }
+      });
+
+      if (!disableMessages) {
+        player.showMessage(`You acquired ability: ${ability.name}.`);
+        world.broadcastChatMessage(`${player.getName()} acquired ability ${ability.name}.`, player.getPlayerColor());
+      }
+
+      this._renderStatsUi();
+    }
+  }
+
+  private _abilityRemoved(player: Player, ability: AbilityBehavior) {
+    const slot = this.abilities.find(a => a.ability?.name === ability.name);
+    if (slot) {
+      slot.ability = undefined;
+      ability.equipped = false;
+
+      player.showMessage(`You removed ability: ${ability.name}.`);
+      world.broadcastChatMessage(`${player.getName()} removed ability ${ability.name}.`, player.getPlayerColor());
+      this._renderStatsUi();
+    }
+  }
+
+  private _abilityFlipped(player: Player, ability: AbilityBehavior) {
+    const slot = this.abilities.find(a => a.ability?.name === ability.name);
+    if (slot) {
+      slot.faceUp = ability.card.isFaceUp();
+
+      const action = slot.faceUp ? 'enabled' : 'disabled';
+      player.showMessage(`You ${action} ability: ${ability.name}.`);
+      world.broadcastChatMessage(`${player.getName()} ${action} ability ${ability.name}.`, player.getPlayerColor());
+      this._renderStatsUi();
+    }
+  }
+
   private _recordSnapPoints() {
     for (let i = 0; i < 5; i++) {
       const sp = this.card.getSnapPoint(i);
       this.crewUpkeep[i].snapPoint = sp;
     }
-    this.abilityEyesPoint = this.card.getSnapPoint(6);
-    this.abilityHandsPoint = this.card.getSnapPoint(7);
-    this.abilityLegsPoint = this.card.getSnapPoint(8);
+
+    for (let i = 5; i < 8; i++) {
+      const sp = this.card.getSnapPoint(i);
+      this.abilities[i - 5].snapPoint = sp;
+      const snapped = sp?.getSnappedObject();
+      if (sp && snapped && this.player) {
+        const ability = AbilityManager.registerCard(snapped as Card);
+        if (ability) {
+          this.triggerAbilitySnapped(this.player, ability, sp, true);
+        }
+      }
+    }
+
     this._renderStatsUi();
   }
 
   private _renderStatsUi() {
-    if (this.isActive) {
+    if (this.player) {
       const container = new LayoutBox();
 
       const backdrop = new Border().setColor(Colors.black);

@@ -24,8 +24,7 @@ x Counters & buttons to change amount for resources
 --Bonus:
   - Use better colors for resources
   - Detect damage cubes and crew members on Ship(s) in the middle and show a UI of the current status
-  - Attach (through some joint mechanism) the part token to each upgrade card for Captain
-    - Unattach and place back in original position if moved out of upgrade zone
+  - Button on unowned ship "Claim Ship" which replaces your ship
 
 # General
 

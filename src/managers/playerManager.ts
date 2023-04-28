@@ -1,3 +1,4 @@
+import { CaptainBehavior } from '../behaviors/captain';
 import { PLAYER_AREA_CENTER_X, PLAYER_AREA_WIDTH, SwashPlayer } from '../swashPlayer';
 import { Vector, world } from '@tabletop-playground/api';
 
@@ -18,5 +19,9 @@ export class PlayerManager {
 
   static getPlayerFromTags(tags: string[]) {
     return players.find(x => tags.includes(x.faction));
+  }
+
+  static getPlayerFromCaptain(captain: CaptainBehavior) {
+    return players.find(x => x.captain?.card.getId() === captain.card.getId());
   }
 }
