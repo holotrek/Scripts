@@ -1,5 +1,13 @@
-import { refCard } from '@tabletop-playground/api';
+import { Card, refCard } from '@tabletop-playground/api';
 import { ShipManager } from '../managers/shipManager';
 
-ShipManager.registerCard(refCard);
-refCard.onCreated.add(ShipManager.registerCard);
+const registerShip = (card: Card) => {
+  if (card.getStackSize() === 1) {
+    ShipManager.registerCard(card);
+  }
+};
+
+registerShip(refCard);
+refCard.onCreated.add(registerShip);
+refCard.onMovementStopped.add(registerShip);
+refCard.onSnapped.add(registerShip);

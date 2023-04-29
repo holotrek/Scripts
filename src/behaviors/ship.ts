@@ -110,7 +110,7 @@ export class ShipBehavior implements IUpgradeable {
   }
 
   private _renderStatsUi() {
-    if (this.card.isFaceUp()) {
+    if (this.card.isFaceUp() && this.card.getStackSize() === 1) {
       const container = new LayoutBox();
 
       const backdrop = new Border().setColor(Colors.black);

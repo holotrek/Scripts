@@ -9,7 +9,6 @@ refCard.onCreated.add(AbilityManager.registerCard);
 const identifyAbilityPosition = (card: Card, disableMessages = false) => {
   if (card.getStackSize() === 1) {
     const ability = AbilityManager.getAbility(card.getId());
-    console.log(ability?.name);
     if (ability) {
       const snapPoint = card.getSnappedToPoint();
       if (snapPoint) {
