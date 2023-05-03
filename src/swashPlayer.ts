@@ -106,6 +106,22 @@ export class SwashPlayer {
     }
   }
 
+  bindShipEvents(ship: ShipBehavior) {
+    ship.onUseShipSelected.add(ship => {
+      ////TODO:
+      //// 1. Scrap ship upgrades and give equivalent resources
+      //// 2. Destroy current ship (save position first)
+      //// 3. Move new ship to ship position and freeze
+      //// 4. Assign new ship: this._assignShip(ship.card)
+    });
+    ship.onShipScrapSelected.add(ship => {
+      ////TODO:
+      //// 1. Prereq: Assign resources to each ship and reflect on UI
+      //// 2. Destroy ship card
+      //// 3. Give player associated resources
+    });
+  }
+
   private _assignShip(card: Card) {
     const ship = ShipManager.registerCard(card);
     this.ship = ship;

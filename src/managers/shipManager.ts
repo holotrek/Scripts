@@ -16,6 +16,11 @@ export class ShipManager {
   static behaviors: { [guid: string]: ShipBehavior } = {};
 
   static registerCard(card: Card): ShipBehavior | undefined {
+    const ship = ShipManager.getShip(card.getId());
+    if (!!ship) {
+      return ship;
+    }
+
     const spec = ShipManager.getShipSpec(card.getCardDetails().name);
     if (spec) {
       const behavior = new ShipBehavior(card, spec);

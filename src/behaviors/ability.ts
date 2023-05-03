@@ -2,8 +2,10 @@ import { AbilitySpec, CaptainSocket } from '../specs/ability';
 import { AbilityStatSpec } from '../specs/abilityStat';
 import { Border, Button, Card, LayoutBox, Rotator, UIElement, UIPresentationStyle, UIZoomVisibility, Vector } from '@tabletop-playground/api';
 import { Colors } from '../constants';
+import { UIRenderer } from '../ui/renderer';
 
 export class AbilityBehavior {
+  private _uiRenderer: UIRenderer;
   private _equipped = false;
   private _exhausted = false;
 
@@ -52,6 +54,7 @@ export class AbilityBehavior {
     this.canExhaust = abilitySpec.canExhaust;
     this.faceUpStat = abilitySpec.faceUpStat;
     this.faceDownStat = abilitySpec.faceDownStat;
+    this._uiRenderer = new UIRenderer(card);
   }
 
   private _renderStatsUi() {
@@ -68,16 +71,11 @@ export class AbilityBehavior {
       backdrop.setChild(button);
     }
 
-    const ui = new UIElement();
-    ui.anchorY = 1.0;
-    ui.position = new Vector(2, 0, -0.1);
-    ui.rotation = new Rotator(180, 180, 0);
-    ui.scale = 0.35;
-    ui.widget = container;
-    if (this.card.getUIs().length) {
-      this.card.setUI(0, ui);
-    } else {
-      this.card.addUI(ui);
-    }
+    this._uiRenderer.renderUI(container, ui => {
+      ui.anchorY = 1.0;
+      ui.position = new Vector(2, 0, -0.1);
+      ui.rotation = new Rotator(180, 180, 0);
+      ui.scale = 0.35;
+    });
   }
 }

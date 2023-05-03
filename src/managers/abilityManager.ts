@@ -28,6 +28,11 @@ export class AbilityManager {
   static behaviors: { [guid: string]: AbilityBehavior } = {};
 
   static registerCard(card: Card): AbilityBehavior | undefined {
+    const ability = AbilityManager.getAbility(card.getId());
+    if (!!ability) {
+      return ability;
+    }
+
     const spec = AbilityManager.getAbilitySpec(card.getCardDetails().name);
     if (spec) {
       const behavior = new AbilityBehavior(card, spec);
