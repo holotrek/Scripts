@@ -79,6 +79,7 @@ function drawShips(drawPoint: Vector) {
       const card = drawDeck?.takeCards(1);
       card?.setPosition(SnapPointManager.getPointVector(+i), 0.5);
       card?.setRotation(new Rotator(180, 90, 0));
+      setTimeout(() => card?.freeze(), 1000);
     }
   }
 }

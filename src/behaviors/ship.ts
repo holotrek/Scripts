@@ -1,4 +1,4 @@
-import { Border, Card, GameObject, LayoutBox, Player, Text, UIElement, UIPresentationStyle, Vector, VerticalBox, world } from '@tabletop-playground/api';
+import { Border, Card, GameObject, LayoutBox, ObjectType, Player, Text, UIElement, UIPresentationStyle, Vector, VerticalBox, world } from '@tabletop-playground/api';
 import { Colors } from '../constants';
 import { ImageTextStatRow, TextStatRow } from '../ui/statRow';
 import { IUpgradeable } from '../interfaces/upgradeable';
@@ -7,7 +7,10 @@ import { ShipUpgrade } from '../shipUpgrade';
 import { Upgrade } from '../upgrade';
 
 export class ShipBehavior implements IUpgradeable {
+  private _isOwned = false;
   private _crewOnDefense: Array<string> = [];
+  private _crewOnAttack: { [key: number]: Array<string> } = {};
+  private _damageCubes: { [key: number]: Array<string> } = {};
   private _upgrades: ShipUpgrade[] = [];
 
   get combatValue(): number {
@@ -38,6 +41,54 @@ export class ShipBehavior implements IUpgradeable {
     );
   }
 
+  get damageTaken(): number {
+    let damage = 0;
+    for (const arr of Object.values(this._damageCubes)) {
+      damage += arr.length;
+    }
+    return damage;
+  }
+
+  get damageLeader(): number {
+    let curLeader = -1;
+    let leaderAmount = 0;
+    for (const slot in this._damageCubes) {
+      if (this._damageCubes[+slot].length > leaderAmount) {
+        curLeader = +slot;
+        leaderAmount = this._damageCubes[+slot].length;
+      }
+    }
+    return curLeader;
+  }
+
+  get attackLeader(): number {
+    let curLeader = -1;
+    let leaderAmount = 0;
+    for (const slot in this._crewOnAttack) {
+      if (this._crewOnAttack[+slot].length > leaderAmount) {
+        curLeader = +slot;
+        leaderAmount = this._crewOnAttack[+slot].length;
+      }
+    }
+
+    return curLeader > -1 ? curLeader : this.damageLeader;
+  }
+
+  get attackLeaderName(): string | undefined {
+    if (this.attackLeader > -1) {
+      return world.getPlayerBySlot(this.attackLeader)?.getName();
+    }
+    return undefined;
+  }
+
+  get isOwned(): boolean {
+    return this._isOwned;
+  }
+  set isOwned(owned: boolean) {
+    this._isOwned = owned;
+    this._renderStatsUi();
+  }
+
   name: string;
   size: ShipSizes;
   health: number;
@@ -46,7 +97,6 @@ export class ShipBehavior implements IUpgradeable {
   initialCargo: number;
   overkill: number;
   dice: number;
-  isOwned = false;
 
   /**
    * A ship in the Swash game
@@ -64,6 +114,7 @@ export class ShipBehavior implements IUpgradeable {
     this.dice = spec.dice;
     this._renderStatsUi();
     card.onMovementStopped.add(_ => this._renderStatsUi());
+    this.isOwned = !!world.getAllZones().find(z => !!z.getOverlappingObjects().find(o => o.getId() === card.getId()));
   }
 
   getUpgrades(): Array<Upgrade> {
@@ -93,24 +144,62 @@ export class ShipBehavior implements IUpgradeable {
 
   triggerCrewMoved(player: Player, crewObj: GameObject, isOnShip: boolean, disableMessages = false) {
     const crewId = crewObj.getId();
-    if (isOnShip && !this._crewOnDefense.includes(crewId)) {
-      this._crewOnDefense.push(crewId);
-      this._renderStatsUi();
-
-      if (!disableMessages) {
-        world.broadcastChatMessage(`${player.getName()} added a crewmember to Ship defense.`, player.getPlayerColor());
-      }
-    } else if (!isOnShip) {
-      const idx = this._crewOnDefense.findIndex(c => c === crewId);
-      if (idx > -1) {
-        this._crewOnDefense.splice(idx, 1);
+    if (this.isOwned) {
+      if (isOnShip && !this._crewOnDefense.includes(crewId)) {
+        this._crewOnDefense.push(crewId);
         this._renderStatsUi();
+
+        if (!disableMessages) {
+          world.broadcastChatMessage(
+            `${player.getName()} added a crewmember to Ship defense.`,
+            player.getPlayerColor()
+          );
+        }
+      } else if (!isOnShip) {
+        const idx = this._crewOnDefense.findIndex(c => c === crewId);
+        if (idx > -1) {
+          this._crewOnDefense.splice(idx, 1);
+          this._renderStatsUi();
+        }
       }
+    } else {
+      this._addPlayerRelatedObject(this._crewOnAttack, player, crewObj);
+      if (!disableMessages) {
+        world.broadcastChatMessage(`${player.getName()} boarded a ${this.name}.`, player.getPlayerColor());
+      }
+      this._renderStatsUi();
     }
   }
 
+  triggerCubePlacedHere(player: Player, cubeObj: GameObject, disableMessages = false) {
+    this._addPlayerRelatedObject(this._damageCubes, player, cubeObj);
+    if (!disableMessages) {
+      world.broadcastChatMessage(`${player.getName()} added 1 damage to ${this.name}.`, player.getPlayerColor());
+    }
+    this._renderStatsUi();
+  }
+
+  private _addPlayerRelatedObject(collection: { [key: number]: string[] }, player: Player, obj: GameObject) {
+    const id = obj.getId();
+    const existing = collection[player.getSlot()] ?? [];
+    existing.push(id);
+    collection[player.getSlot()] = existing;
+    const removeFunc = () => {
+      const objsUnder = world.sphereOverlap(obj.getPosition(), 1);
+      if (!objsUnder.find(o => o.getId() === this.card.getId())) {
+        const existing = collection[player.getSlot()] ?? [];
+        const idx = existing.indexOf(id);
+        existing.splice(idx, 1);
+        collection[player.getSlot()] = existing;
+        this._renderStatsUi();
+      }
+    };
+    obj.onMovementStopped.add(removeFunc);
+    obj.onDestroyed.add(removeFunc);
+  }
+
   private _renderStatsUi() {
-    if (this.card.isFaceUp() && this.card.getStackSize() === 1) {
+    if ((this.card.isFaceUp() || this.card.getObjectType() === ObjectType.Ground) && this.card.getStackSize() === 1) {
       const container = new LayoutBox();
 
       const backdrop = new Border().setColor(Colors.black);
@@ -120,11 +209,17 @@ export class ShipBehavior implements IUpgradeable {
       backdrop.setChild(column);
 
       column.addChild(new Text().setText(`${this.name} Stats:`).setFontSize(16));
-      column.addChild(
-        new ImageTextStatRow('Health:', 'Health.png', this.health.toString(), Colors.green, Colors.black)
-      );
+      if (!this.isOwned) {
+        const overallHealth = `${this.health - this.damageTaken} / ${this.health}`;
+        column.addChild(new ImageTextStatRow('Health:', 'Health.png', overallHealth, Colors.green, Colors.black));
+      }
+      if (this.attackLeaderName) {
+        column.addChild(new TextStatRow('Attack Leader:', this.attackLeaderName, Colors.black));
+      }
       column.addChild(new ImageTextStatRow('CV:', 'CV.png', this.combatValue.toString(), Colors.red));
-      column.addChild(new ImageTextStatRow('Defense:', 'Defense.png', this.defense.toString(), Colors.blue));
+      if (this.isOwned) {
+        column.addChild(new ImageTextStatRow('Defense:', 'Defense.png', this.defense.toString(), Colors.blue));
+      }
       column.addChild(new ImageTextStatRow('Cargo:', 'Cargo.png', this.cargo.toString(), Colors.gold, Colors.black));
       column.addChild(new TextStatRow('Sink DMG:', (this.health - this.overkill).toString(), Colors.black));
       column.addChild(new TextStatRow('FATE Dice:', this.dice.toString(), Colors.black));
