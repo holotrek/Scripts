@@ -115,8 +115,15 @@ export class SwashPlayer {
 
   private _claimShip(ship: ShipBehavior) {
     this._returnDamageCubesAndCrew(ship);
-    ////TODO: Scrap ship upgrades and give equivalent resources
     if (this.ship) {
+      ////TODO: Scrap ship upgrades and give equivalent resources
+      ////1. Add resource to metadata on card
+      ////2. Uses specs pattern to avoid overwriting existing card behavior
+      ////3. Add resource value to behavior
+      ////4. Update manager accordingly
+      ////5. Give resources equivalent to ship upgrade cards
+      ////6. Discard all ship upgrades to player's discard deck
+
       const shipPos = this.ship.card.getPosition();
       const shipRot = this.ship.card.getRotation();
       CardHelper.discardShip(this.ship.card);
