@@ -115,11 +115,17 @@ export class SwashPlayer {
 
   private _claimShip(ship: ShipBehavior) {
     this._returnDamageCubesAndCrew(ship);
-    ////TODO:
-    //// 1. Scrap ship upgrades and give equivalent resources
-    //// 2. Destroy current ship (save position first)
-    //// 3. Move new ship to ship position and freeze
-    //// 4. Assign new ship: this._assignShip(ship.card)
+    ////TODO: Scrap ship upgrades and give equivalent resources
+    if (this.ship) {
+      const shipPos = this.ship.card.getPosition();
+      const shipRot = this.ship.card.getRotation();
+      CardHelper.discardShip(this.ship.card);
+      ship.card.toggleLock();
+      ship.card.setPosition(shipPos);
+      ship.card.setRotation(shipRot);
+      ship.card.freeze();
+      this._assignShip(ship.card);
+    }
   }
 
   private _scrapShip(ship: ShipBehavior) {

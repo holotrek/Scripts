@@ -178,39 +178,56 @@ export class ShipBehavior implements IUpgradeable {
         }
       }
     } else {
-      this._addPlayerRelatedObject(this._crewOnAttack, player, crewObj);
+      const added = this._addPlayerRelatedObject(this._crewOnAttack, player, crewObj);
+      if (added) {
+        if (!disableMessages) {
+          world.broadcastChatMessage(`${player.getName()} boarded a ${this.name}.`, player.getPlayerColor());
+        }
+        this._renderUis();
+      }
+    }
+  }
+
+  triggerCubePlacedHere(player: Player, cubeObj: GameObject, disableMessages = false) {
+    const added = this._addPlayerRelatedObject(this._damageCubes, player, cubeObj);
+    if (added) {
       if (!disableMessages) {
-        world.broadcastChatMessage(`${player.getName()} boarded a ${this.name}.`, player.getPlayerColor());
+        world.broadcastChatMessage(`${player.getName()} added 1 damage to ${this.name}.`, player.getPlayerColor());
       }
       this._renderUis();
     }
   }
 
-  triggerCubePlacedHere(player: Player, cubeObj: GameObject, disableMessages = false) {
-    this._addPlayerRelatedObject(this._damageCubes, player, cubeObj);
-    if (!disableMessages) {
-      world.broadcastChatMessage(`${player.getName()} added 1 damage to ${this.name}.`, player.getPlayerColor());
-    }
-    this._renderUis();
-  }
-
   private _addPlayerRelatedObject(collection: { [key: number]: string[] }, player: Player, obj: GameObject) {
     const id = obj.getId();
     const existing = collection[player.getSlot()] ?? [];
+    if (existing.includes(id)) {
+      return false;
+    }
+
     existing.push(id);
     collection[player.getSlot()] = existing;
-    const removeFunc = () => {
+
+    const isCardUnder = (obj: GameObject) => {
       const objsUnder = world.sphereOverlap(obj.getPosition(), 1);
-      if (!objsUnder.find(o => o.getId() === this.card.getId())) {
-        const existing = collection[player.getSlot()] ?? [];
-        const idx = existing.indexOf(id);
-        existing.splice(idx, 1);
-        collection[player.getSlot()] = existing;
-        this._renderUis();
-      }
+      return objsUnder.find(o => o.getId() === this.card.getId());
     };
-    obj.onMovementStopped.add(removeFunc);
+    const removeFunc = () => {
+      const existing = collection[player.getSlot()] ?? [];
+      const idx = existing.indexOf(id);
+      existing.splice(idx, 1);
+      collection[player.getSlot()] = existing;
+      this._renderUis();
+    };
+
+    obj.onMovementStopped.add(obj => {
+      if (!isCardUnder(obj)) {
+        removeFunc();
+      }
+    });
     obj.onDestroyed.add(removeFunc);
+
+    return true;
   }
 
   private _renderUis() {
