@@ -184,6 +184,18 @@ export class CaptainBehavior implements IUpgradeable {
     }
   }
 
+  returnCrew(crewObj: GameObject) {
+    for (let i = this.crewUpkeep.length - 1; i >= 0; i--) {
+      const u = this.crewUpkeep[i];
+      if (u.snapPoint) {
+        if (!u.snapPoint.getSnappedObject()) {
+          crewObj.setPosition(u.snapPoint.getGlobalPosition());
+          break;
+        }
+      }
+    }
+  }
+
   private _abilityRemoved(player: Player, ability: AbilityBehavior) {
     const slot = this.abilities.find(a => a.ability?.name === ability.name);
     if (slot) {

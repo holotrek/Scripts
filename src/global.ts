@@ -1,8 +1,8 @@
-import { Button, Card, Container, GameObject, globalEvents, LayoutBox, Player, Rotator, UIElement, Vector, world } from '@tabletop-playground/api';
+import { Button, Container, globalEvents, LayoutBox, Player, Rotator, UIElement, Vector, world } from '@tabletop-playground/api';
+import { CardHelper } from './cardHelper';
 import { PlayerManager } from './managers/playerManager';
 import { ResourceManager } from './managers/resourceManager';
 import { Resources } from './resources';
-import { SnapPointManager, SnapPoints } from './managers/snapPointManager';
 
 for (const dl of world.getDrawingLines()) {
   world.removeDrawingLineObject(dl);
@@ -17,7 +17,6 @@ for (const l of world.getAllLabels()) {
 }
 
 const tableHeight = world.getTableHeight();
-const shipsPlayedSnapPoints = [SnapPoints.NpcShip1, SnapPoints.NpcShip2, SnapPoints.NpcShip3, SnapPoints.NpcShip4];
 
 function createLabel(text: string, position: Vector, rotation?: Rotator, scale = 0.5) {
   const label = world.createLabel(position);
@@ -26,78 +25,11 @@ function createLabel(text: string, position: Vector, rotation?: Rotator, scale =
   label.setScale(scale);
 }
 
-function getCardAtPoint(position: Vector) {
-  const gameObjects = world.sphereOverlap(position, 1);
-  if (gameObjects.length) {
-    return gameObjects[0] as Card;
-  }
-  return undefined;
-}
-
-function getShipsPlayed() {
-  const shipsPlayed: Array<Card> = [];
-  for (const i in SnapPointManager.snapPoints) {
-    if (shipsPlayedSnapPoints.includes(+i)) {
-      const shipCard = getCardAtPoint(SnapPointManager.getPointVector(+i));
-      if (shipCard) {
-        shipsPlayed.push(shipCard);
-      }
-    }
-  }
-  return shipsPlayed;
-}
-
-function discardShips(shipsPlayed: Card[], drawPoint: Vector, discardPoint: Vector) {
-  let discardedCards = getCardAtPoint(discardPoint);
-  const drawDeck = getCardAtPoint(drawPoint);
-
-  for (const s of shipsPlayed) {
-    if (discardedCards) {
-      discardedCards.addCards(s, false, undefined, true);
-    } else {
-      s.setPosition(discardPoint.add([0, 0, 2]), 0.5);
-      s.setRotation(new Rotator(180, 0, 0));
-      discardedCards = s;
-    }
-  }
-
-  const numCardsNeeded = Math.max(4, Math.min(1, world.getAllPlayers().length - 1));
-  if (discardedCards && (!drawDeck || drawDeck.getStackSize() < numCardsNeeded)) {
-    if (drawDeck) {
-      discardedCards.addCards(drawDeck, false, undefined, true);
-    }
-    discardedCards.setPosition(drawPoint.add([0, 0, 5]), 1);
-    discardedCards.setRotation(new Rotator(0, 180, 0));
-    discardedCards.shuffle();
-  }
-}
-
-function drawShips(drawPoint: Vector) {
-  const drawDeck = getCardAtPoint(drawPoint);
-  for (const i in SnapPointManager.snapPoints) {
-    if (shipsPlayedSnapPoints.includes(+i)) {
-      const card = drawDeck?.takeCards(1);
-      card?.setPosition(SnapPointManager.getPointVector(+i), 0.5);
-      card?.setRotation(new Rotator(180, 90, 0));
-      setTimeout(() => card?.freeze(), 1000);
-    }
-  }
-}
-
-function discardAndRedrawShips() {
-  const discardPoint = SnapPointManager.getPointVector(SnapPoints.ShipDiscard);
-  const drawPoint = SnapPointManager.getPointVector(SnapPoints.ShipDeck);
-  const shipsPlayed = getShipsPlayed();
-
-  discardShips(shipsPlayed, drawPoint, discardPoint);
-  drawShips(drawPoint);
-}
-
 function renderWorldUI() {
   const container = new LayoutBox();
 
   const button = new Button().setText('Discard and Redraw');
-  button.onClicked.add(discardAndRedrawShips);
+  button.onClicked.add(CardHelper.discardAndRedrawShips);
   container.setChild(button);
 
   const ui = new UIElement();

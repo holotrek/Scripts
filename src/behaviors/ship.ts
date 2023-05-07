@@ -1,8 +1,9 @@
-import { Border, Button, Card, GameObject, LayoutBox, MulticastDelegate, ObjectType, Player, Rotator, Text, UIElement, UIPresentationStyle, Vector, VerticalBox, world } from '@tabletop-playground/api';
-import { Colors } from '../constants';
+import { Border, Button, Card, GameObject, HorizontalBox, ImageWidget, LayoutBox, ObjectType, Player, Rotator, Text, UIPresentationStyle, Vector, VerticalBox, world } from '@tabletop-playground/api';
+import { Colors, SWASH_PACKAGE_ID } from '../constants';
 import { ImageTextStatRow, TextStatRow } from '../ui/statRow';
 import { IUpgradeable } from '../interfaces/upgradeable';
-import { PlayerManager } from '../managers/playerManager';
+import { MulticastDelegate } from '../multicastDelegate';
+import { Resource, Resources } from '../resources';
 import { ShipSizes, ShipSpec } from '../specs/ship';
 import { ShipUpgrade } from '../shipUpgrade';
 import { UIRenderer } from '../ui/renderer';
@@ -102,9 +103,10 @@ export class ShipBehavior implements IUpgradeable {
   initialCargo: number;
   overkill: number;
   dice: number;
+  scrap: Array<Resources>;
 
-  onUseShipSelected = new MulticastDelegate<(ship: ShipBehavior) => void>();
-  onShipScrapSelected = new MulticastDelegate<(ship: ShipBehavior) => void>();
+  onUseShipSelected: MulticastDelegate<(ship: ShipBehavior) => void>;
+  onShipScrapSelected: MulticastDelegate<(ship: ShipBehavior) => void>;
 
   /**
    * A ship in the Swash game
@@ -120,6 +122,10 @@ export class ShipBehavior implements IUpgradeable {
     this.initialCargo = spec.cargo;
     this.overkill = spec.overkill;
     this.dice = spec.dice;
+    this.scrap = spec.scrap;
+
+    this.onUseShipSelected = new MulticastDelegate<(ship: ShipBehavior) => void>();
+    this.onShipScrapSelected = new MulticastDelegate<(ship: ShipBehavior) => void>();
     this._uiRenderer = new UIRenderer(card);
     this._buttonRenderer = new UIRenderer(card);
     card.onMovementStopped.add(_ => this._renderUis());
@@ -212,10 +218,6 @@ export class ShipBehavior implements IUpgradeable {
     this._renderButtonUi();
   }
 
-  private _giveShipToPlayer() {}
-
-  private _scrapShip() {}
-
   private _renderStatsUi() {
     const container = new LayoutBox();
     container.setVisible(
@@ -245,6 +247,16 @@ export class ShipBehavior implements IUpgradeable {
     column.addChild(new TextStatRow('Sink DMG:', (this.health - this.overkill).toString(), Colors.black));
     column.addChild(new TextStatRow('FATE Dice:', this.dice.toString(), Colors.black));
 
+    if (!this.isOwned) {
+      column.addChild(new Text().setText('Scrap Rewards:'));
+      const resources = new HorizontalBox();
+      for (const r of this.scrap) {
+        const img = Resource.getImage(r);
+        resources.addChild(new ImageWidget().setImageSize(0, 32).setImage(img, SWASH_PACKAGE_ID));
+      }
+      column.addChild(resources);
+    }
+
     this._uiRenderer.renderUI(container, ui => {
       ui.anchorY = 1.0;
       ui.position = new Vector(7.5, 0, 0);
@@ -269,7 +281,7 @@ export class ShipBehavior implements IUpgradeable {
       box.addChild(useBackdrop, 1);
       const useButton = new Button().setText('Use Ship');
       useButton.onClicked.add(() => {
-        this._giveShipToPlayer();
+        this.onUseShipSelected.trigger(this);
         this._isInClaimChoiceMode = false;
         this._renderButtonUi();
       });
@@ -279,7 +291,7 @@ export class ShipBehavior implements IUpgradeable {
       box.addChild(scrapBackdrop, 1);
       const scrapButton = new Button().setText('Scrap Ship');
       scrapButton.onClicked.add(() => {
-        this._scrapShip();
+        this.onShipScrapSelected.trigger(this);
         this._isInClaimChoiceMode = false;
         this._renderButtonUi();
       });

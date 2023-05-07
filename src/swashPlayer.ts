@@ -2,7 +2,7 @@ import { Border, Button, Card, GameObject, HorizontalAlignment, HorizontalBox, I
 import { CaptainBehavior } from './behaviors/captain';
 import { CaptainManager } from './managers/captainManager';
 import { CardHelper } from './cardHelper';
-import { Colors, SWASH_PACKAGE_ID, Tags } from './constants';
+import { Colors, PLAYER_SLOTS, SWASH_PACKAGE_ID, Tags } from './constants';
 import { IUpgradeable } from './interfaces/upgradeable';
 import { Resource, ResourceConverter, Resources } from './resources';
 import { ResourceManager } from './managers/resourceManager';
@@ -43,7 +43,9 @@ export class SwashPlayer {
   private _optimisticResources: { [key: string]: number } = {};
   private _converter: ResourceConverter;
   private _labels: Array<Label> = [];
+  private _shipEventsBound: Array<string> = [];
 
+  faction: string;
   captain?: CaptainBehavior;
   player?: Player;
   zones: SwashZone[] = [];
@@ -59,16 +61,11 @@ export class SwashPlayer {
   /**
    * Player details including positions for seat and objects
    * @param {number} playerIndex
-   * @param {string} faction
    * @param {Vector} centerPoint
    * @param {boolean} isRotated
    */
-  constructor(
-    public playerIndex: number,
-    public faction: string,
-    public centerPoint: Vector,
-    public isRotated: boolean
-  ) {
+  constructor(public playerIndex: number, public centerPoint: Vector, public isRotated: boolean) {
+    this.faction = PLAYER_SLOTS[playerIndex];
     this._converter = new ResourceConverter();
     this._converter.onCalculationChanged(() => this._renderScreenUi());
     this._renderScreenUi();
@@ -107,19 +104,45 @@ export class SwashPlayer {
   }
 
   bindShipEvents(ship: ShipBehavior) {
-    ship.onUseShipSelected.add(ship => {
-      ////TODO:
-      //// 1. Scrap ship upgrades and give equivalent resources
-      //// 2. Destroy current ship (save position first)
-      //// 3. Move new ship to ship position and freeze
-      //// 4. Assign new ship: this._assignShip(ship.card)
-    });
-    ship.onShipScrapSelected.add(ship => {
-      ////TODO:
-      //// 1. Prereq: Assign resources to each ship and reflect on UI
-      //// 2. Destroy ship card
-      //// 3. Give player associated resources
-    });
+    if (this._shipEventsBound.includes(ship.card.getId())) {
+      return;
+    }
+
+    ship.onUseShipSelected.add(ship => this._claimShip(ship));
+    ship.onShipScrapSelected.add(ship => this._scrapShip(ship));
+    this._shipEventsBound.push(ship.card.getId());
+  }
+
+  private _claimShip(ship: ShipBehavior) {
+    this._returnDamageCubesAndCrew(ship);
+    ////TODO:
+    //// 1. Scrap ship upgrades and give equivalent resources
+    //// 2. Destroy current ship (save position first)
+    //// 3. Move new ship to ship position and freeze
+    //// 4. Assign new ship: this._assignShip(ship.card)
+  }
+
+  private _scrapShip(ship: ShipBehavior) {
+    this._returnDamageCubesAndCrew(ship);
+    for (const r of ship.scrap) {
+      this._addResource(r, 1);
+    }
+    CardHelper.discardShip(ship.card);
+  }
+
+  private _returnDamageCubesAndCrew(ship: ShipBehavior) {
+    const pos = ship.card.getPosition();
+    const objsOnShip = world.boxOverlap(pos, [7, 11.4, 1]);
+    const cubes = objsOnShip.filter(o => o.getTags().includes(Tags.DamageCube));
+    for (const c of cubes) {
+      c.destroy();
+    }
+
+    const crew = objsOnShip.filter(o => o.getTags().includes(Tags.Crew));
+    for (const c of crew) {
+      const cpt = CaptainManager.getCaptainByPlayerTags(c.getTags());
+      cpt?.returnCrew(c);
+    }
   }
 
   private _assignShip(card: Card) {

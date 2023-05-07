@@ -1,5 +1,7 @@
 import { Color, refPackageId } from '@tabletop-playground/api';
 
+export const PLAYER_SLOTS = ['Whales', 'Sharks', 'Starfish', 'Turtles', 'Lobsters', 'Parrots'];
+
 export enum Tags {
   SwashShip = 'SwashShip',
   SwashCard = 'SwashCard',
@@ -9,6 +11,7 @@ export enum Tags {
   TokenChest = 'Token Chest',
   Crew = 'Crew',
   Resource = 'Resource',
+  DamageCube = 'Damage Cube',
 }
 
 export class Colors {
