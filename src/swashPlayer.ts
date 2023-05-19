@@ -1,15 +1,15 @@
-import { Border, Button, Card, GameObject, HorizontalAlignment, HorizontalBox, ImageButton, ImageWidget, Label, LayoutBox, Player, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
+import { Border, Button, Card, GameObject, HorizontalAlignment, HorizontalBox, ImageButton, ImageWidget, Label, LayoutBox, Player, Rotator, ScreenUIElement, SnapPoint, Text, Vector, VerticalAlignment, VerticalBox, world, Zone } from '@tabletop-playground/api';
 import { CaptainBehavior } from './behaviors/captain';
 import { CaptainManager } from './managers/captainManager';
 import { CardHelper } from './cardHelper';
 import { Colors, PLAYER_SLOTS, SWASH_PACKAGE_ID, Tags } from './constants';
 import { IUpgradeable } from './interfaces/upgradeable';
+import { IUpgradeMetadata, Upgrade, UpgradeType } from './upgrade';
 import { Resource, ResourceConverter, Resources } from './resources';
 import { ResourceManager } from './managers/resourceManager';
 import { ShipBehavior } from './behaviors/ship';
 import { ShipManager } from './managers/shipManager';
 import { SwashZone } from './swashZone';
-import { Upgrade, UpgradeType } from './upgrade';
 import { UpgradeManager } from './managers/upgradeManager';
 
 export const PLAYER_AREA_CENTER_X = 56;
@@ -44,6 +44,8 @@ export class SwashPlayer {
   private _converter: ResourceConverter;
   private _labels: Array<Label> = [];
   private _shipEventsBound: Array<string> = [];
+  private _captainUpgradeZone?: SwashZone;
+  private _shipUpgradeZone?: SwashZone;
 
   faction: string;
   captain?: CaptainBehavior;
@@ -116,13 +118,26 @@ export class SwashPlayer {
   private _claimShip(ship: ShipBehavior) {
     this._returnDamageCubesAndCrew(ship);
     if (this.ship) {
-      ////TODO: Scrap ship upgrades and give equivalent resources
-      ////1. Add resource to metadata on card
-      ////2. Uses specs pattern to avoid overwriting existing card behavior
-      ////3. Add resource value to behavior
-      ////4. Update manager accordingly
-      ////5. Give resources equivalent to ship upgrade cards
-      ////6. Discard all ship upgrades to player's discard deck
+      if (this._shipUpgradeZone) {
+        // Give resources for all existing ship upgrades
+        const allShipUpgrades = CardHelper.getAllCardDetailsInZone(this._shipUpgradeZone.zone);
+        const allMeta = allShipUpgrades.map(su => JSON.parse(su.metadata) as IUpgradeMetadata);
+        const resourceAmts = allMeta.reduce((pv, cv: IUpgradeMetadata) => {
+          var r = Resource.fromName(cv.resource);
+          pv[r] = (pv[r] || 0) + 1;
+          return pv;
+        }, {} as { [key: number]: number });
+        for (const r in resourceAmts) {
+          if (Object.hasOwn(resourceAmts, +r)) {
+            this._addResource(+r, resourceAmts[r]);
+          }
+        }
+
+        // Discard Ship Upgrades
+        const discardPoint = new Vector(DISCARD_DELTA_X, DISCARD_DELTA_Y, 0);
+        const allUpgrades = CardHelper.getAllCardsInZone(this._shipUpgradeZone?.zone);
+        CardHelper.discardCardsToPoint(discardPoint, allUpgrades);
+      }
 
       const shipPos = this.ship.card.getPosition();
       const shipRot = this.ship.card.getRotation();
@@ -179,13 +194,11 @@ export class SwashPlayer {
     this.playerZone = zone;
     zone.setOnCardEnter(card => this._processShipPlacedInZone(card));
     this._assignZoneObjects(zone.zone);
-    for (const c of zone.zone.getOverlappingObjects()) {
-      if (c instanceof Card) {
-        if (c.getTags().includes(Tags.Resource)) {
-          this._updateResources(zone, true);
-        } else if (c.getTags().includes(Tags.SwashShip)) {
-          this._processShipPlacedInZone(c, true);
-        }
+    for (const c of CardHelper.getAllCardsInZone(zone.zone)) {
+      if (c.getTags().includes(Tags.Resource)) {
+        this._updateResources(zone, true);
+      } else if (c.getTags().includes(Tags.SwashShip)) {
+        this._processShipPlacedInZone(c, true);
       }
     }
     zone.zone.onBeginOverlap.add(() => {
@@ -196,38 +209,47 @@ export class SwashPlayer {
     });
 
     const capUpgradeDelta = new Vector(CAPTAIN_UPGRADES_DELTA_X, CAPTAIN_UPGRADES_DELTA_Y, 0);
-    const capUpgradeZoneCenter = this.centerPoint.add(capUpgradeDelta.multiply(this.isRotated ? -1 : 1));
-    const capUpgradeZone = SwashZone.createZone(
-      this.color,
-      this.playerIndex,
-      capUpgradeZoneCenter,
+    this._captainUpgradeZone = this._createUpgradeZone(
+      'Captain Upgrades',
+      capUpgradeDelta,
       CAPTAIN_UPGRADES_HEIGHT,
       CAPTAIN_UPGRADES_WIDTH,
-      this.isRotated,
-      0.5,
-      'Captain Upgrades'
+      this._captainUgradesChanged
     );
-    capUpgradeZone.setOnCardEnter(_ => this._captainUgradesChanged(capUpgradeZone));
-    capUpgradeZone.setOnCardLeave(_ => this._captainUgradesChanged(capUpgradeZone));
-    this.zones.push(capUpgradeZone);
-    this._captainUgradesChanged(capUpgradeZone, true);
 
     const shipUpgradeDelta = new Vector(SHIP_UPGRADES_DELTA_X, SHIP_UPGRADES_DELTA_Y, 0);
-    const shipUpgradeZoneCenter = this.centerPoint.add(shipUpgradeDelta.multiply(this.isRotated ? -1 : 1));
-    const shipUpgradeZone = SwashZone.createZone(
-      this.color,
-      this.playerIndex,
-      shipUpgradeZoneCenter,
+    this._shipUpgradeZone = this._createUpgradeZone(
+      'Ship Upgrades',
+      shipUpgradeDelta,
       SHIP_UPGRADES_HEIGHT,
       SHIP_UPGRADES_WIDTH,
+      this._shipUgradesChanged
+    );
+  }
+
+  private _createUpgradeZone(
+    label: string,
+    delta: Vector,
+    height: number,
+    width: number,
+    changedFn: (zone: SwashZone, disableMessages?: boolean) => void
+  ) {
+    const zoneCenter = this.centerPoint.add(delta.multiply(this.isRotated ? -1 : 1));
+    const zone = SwashZone.createZone(
+      this.color,
+      this.playerIndex,
+      zoneCenter,
+      height,
+      width,
       this.isRotated,
       0.5,
-      'Ship Upgrades'
+      label
     );
-    shipUpgradeZone.setOnCardEnter(_ => this._shipUgradesChanged(shipUpgradeZone));
-    shipUpgradeZone.setOnCardLeave(_ => this._shipUgradesChanged(shipUpgradeZone));
-    this.zones.push(shipUpgradeZone);
-    this._shipUgradesChanged(shipUpgradeZone, true);
+    zone.setOnCardEnter(_ => changedFn(zone));
+    zone.setOnCardLeave(_ => changedFn(zone));
+    this.zones.push(zone);
+    changedFn(zone, true);
+    return zone;
   }
 
   private _assignZoneObjects(zone: Zone) {
@@ -390,10 +412,7 @@ export class SwashPlayer {
 
   private _removeResource(resource: Resources, amount = 1) {
     const name = Resource.getName(resource);
-    const existing = (this.playerZone?.zone?.getOverlappingObjects() || [])
-      .filter(c => c instanceof Card)
-      .map(c => c as Card)
-      .filter(c => c.getTemplateName() === name);
+    const existing = CardHelper.getAllCardsInZone(this.playerZone?.zone).filter(c => c.getTemplateName() === name);
 
     let remaining = amount;
     for (const c of existing) {

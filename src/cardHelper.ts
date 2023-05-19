@@ -1,16 +1,29 @@
-import { Card, CardDetails, Rotator, Vector, world, Zone } from '@tabletop-playground/api';
-import { ShipBehavior } from './behaviors/ship';
+import { Card, CardDetails, ObjectType, Rotator, Vector, world, Zone } from '@tabletop-playground/api';
 import { SnapPointManager, SnapPoints } from './managers/snapPointManager';
 
 export class CardHelper {
-  static getAllCardDetailsInZone(zone: Zone, tagFilter?: string, faceUpOnly = false) {
+  static getAllCardsInZone(zone?: Zone) {
+    if (!zone) {
+      return [];
+    }
+
+    return zone
+      .getOverlappingObjects()
+      .filter(o => o instanceof Card)
+      .map(o => o as Card);
+  }
+
+  static getAllCardDetailsInZone(zone?: Zone, tagFilter?: string, faceUpOnly = false) {
+    if (!zone) {
+      return [];
+    }
+
     const allCardDetails: Array<CardDetails> = [];
 
-    for (const o of zone.getOverlappingObjects()) {
-      if (o instanceof Card) {
-        if (!faceUpOnly || o.isFaceUp()) {
-          allCardDetails.push(...o.getAllCardDetails().filter(c => !tagFilter || c.tags.includes(tagFilter)));
-        }
+    for (const card of CardHelper.getAllCardsInZone(zone)) {
+      if (!faceUpOnly || card.isFaceUp()) {
+        const stackDetails = card.getAllCardDetails().filter(c => !tagFilter || c.tags.includes(tagFilter));
+        allCardDetails.push(...stackDetails);
       }
     }
     return allCardDetails;
@@ -24,6 +37,21 @@ export class CardHelper {
       return gameObjects[0] as Card;
     }
     return undefined;
+  }
+
+  static discardCardsToPoint(point: Vector, cards: Card[], rotator = new Rotator(180, 0, 0)) {
+    const discardedCards = CardHelper.getCardAtPoint(point);
+    for (const c of cards) {
+      if (c.getObjectType() === ObjectType.Ground) {
+        c.toggleLock();
+      }
+      if (discardedCards) {
+        discardedCards.addCards(c, false, undefined, true);
+      } else {
+        c.setPosition(point.add([0, 0, 2]), 0.5);
+        c.setRotation(rotator);
+      }
+    }
   }
 
   static getShipsPlayed() {
@@ -40,21 +68,13 @@ export class CardHelper {
   }
 
   static discardPlayedShips() {
-    for (const s of CardHelper.getShipsPlayed()) {
-      CardHelper.discardShip(s);
-    }
+    const discardPoint = SnapPointManager.getPointVector(SnapPoints.ShipDiscard);
+    CardHelper.discardCardsToPoint(discardPoint, CardHelper.getShipsPlayed());
   }
 
   static discardShip(card: Card) {
     const discardPoint = SnapPointManager.getPointVector(SnapPoints.ShipDiscard);
-    const discardedCards = CardHelper.getCardAtPoint(discardPoint);
-    card.toggleLock();
-    if (discardedCards) {
-      discardedCards.addCards(card, false, undefined, true);
-    } else {
-      card.setPosition(discardPoint.add([0, 0, 2]), 0.5);
-      card.setRotation(new Rotator(180, 0, 0));
-    }
+    CardHelper.discardCardsToPoint(discardPoint, [card]);
   }
 
   static drawShips() {

@@ -1,7 +1,7 @@
 import { CaptainUpgrade, CaptainUpgradeLocation } from '../captainUpgrade';
 import { CardDetails } from '@tabletop-playground/api';
+import { IUpgradeMetadata, Upgrade } from '../upgrade';
 import { ShipUpgrade } from '../shipUpgrade';
-import { Upgrade } from '../upgrade';
 
 const upgrades = [
   new ShipUpgrade('Hold', 0, 0, 1),
@@ -39,8 +39,7 @@ const upgrades = [
 
 export class UpgradeManager {
   static getUpgrade(card: CardDetails): Upgrade | undefined {
-    const metaJson = card.metadata;
-    const meta = JSON.parse(metaJson);
+    const meta = JSON.parse(card.metadata) as IUpgradeMetadata;
     return upgrades.find(x => x.name === meta.upgradeName);
   }
 }

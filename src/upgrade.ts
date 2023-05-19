@@ -19,3 +19,8 @@ export abstract class Upgrade {
     public defense: number
   ) {}
 }
+
+export interface IUpgradeMetadata {
+  upgradeName: string;
+  resource: string;
+}
