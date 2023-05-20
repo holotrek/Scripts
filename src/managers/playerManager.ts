@@ -1,16 +1,17 @@
 import { CaptainBehavior } from '../behaviors/captain';
-import { PLAYER_AREA_CENTER_X, PLAYER_AREA_WIDTH, SwashPlayer } from '../swashPlayer';
-import { PLAYER_SLOTS } from '../constants';
+import { SwashPlayer, SwashPlayerVectors } from '../swashPlayer';
 import { Vector, world } from '@tabletop-playground/api';
 
 const tableHeight = world.getTableHeight();
+const x = SwashPlayerVectors.center.x;
+const y = SwashPlayerVectors.rect.y;
 const players = [
-  new SwashPlayer(0, new Vector(PLAYER_AREA_CENTER_X, -PLAYER_AREA_WIDTH, tableHeight), true),
-  new SwashPlayer(1, new Vector(PLAYER_AREA_CENTER_X, 0, tableHeight), true),
-  new SwashPlayer(2, new Vector(PLAYER_AREA_CENTER_X, PLAYER_AREA_WIDTH, tableHeight), true),
-  new SwashPlayer(3, new Vector(-PLAYER_AREA_CENTER_X, -PLAYER_AREA_WIDTH, tableHeight), false),
-  new SwashPlayer(4, new Vector(-PLAYER_AREA_CENTER_X, 0, tableHeight), false),
-  new SwashPlayer(5, new Vector(-PLAYER_AREA_CENTER_X, PLAYER_AREA_WIDTH, tableHeight), false),
+  new SwashPlayer(0, new Vector(x, -y, tableHeight), true),
+  new SwashPlayer(1, new Vector(x, 0, tableHeight), true),
+  new SwashPlayer(2, new Vector(x, y, tableHeight), true),
+  new SwashPlayer(3, new Vector(-x, -y, tableHeight), false),
+  new SwashPlayer(4, new Vector(-x, 0, tableHeight), false),
+  new SwashPlayer(5, new Vector(-x, y, tableHeight), false),
 ];
 
 export class PlayerManager {

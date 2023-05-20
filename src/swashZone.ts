@@ -1,4 +1,4 @@
-import { Card, CardDetails, Color, DrawingLine, Label, Rotator, Vector, world, Zone, ZonePermission } from '@tabletop-playground/api';
+import { Card, Color, DrawingLine, Label, Vector, world, Zone, ZonePermission } from '@tabletop-playground/api';
 import { GM_INDEX } from './constants';
 
 export class SwashZone {
@@ -8,13 +8,12 @@ export class SwashZone {
     playerColor: Color | undefined,
     playerIndex: number,
     centerPoint: Vector,
-    height: number,
-    width: number,
+    rect: Vector,
     isRotated: boolean,
     thickness = 1.0,
     label?: string
   ) {
-    const zone = new SwashZone(playerColor, playerIndex, centerPoint, height, width, isRotated, thickness, label);
+    const zone = new SwashZone(playerColor, playerIndex, centerPoint, rect, isRotated, thickness, label);
     this._zones.push(zone);
     return zone;
   }
@@ -35,8 +34,7 @@ export class SwashZone {
     public playerColor: Color | undefined,
     public playerIndex: number,
     public centerPoint: Vector,
-    public height: number,
-    public width: number,
+    public rect: Vector,
     public isRotated: boolean,
     public thickness = 1.0,
     public label?: string
@@ -82,7 +80,7 @@ export class SwashZone {
 
   private _create() {
     const zone = world.createZone(this.centerPoint.add([0, 0, 10]));
-    zone.setScale([this.height, this.width, 20]);
+    zone.setScale(this.rect.add([0, 0, 20]));
     const colorWithHalfAlpha = new Color(
       this.playerColor?.r ?? 1,
       this.playerColor?.g ?? 1,
@@ -113,12 +111,12 @@ export class SwashZone {
     const line = new DrawingLine();
     line.thickness = this.thickness;
     line.color = this.playerColor ?? new Color(1, 1, 1);
-    const startingPoint = this.centerPoint.subtract(new Vector(this.height / 2, this.width / 2, 0));
+    const startingPoint = this.centerPoint.subtract(new Vector(this.rect.x / 2, this.rect.y / 2, 0));
     line.points = [
       startingPoint,
-      startingPoint.add([0, this.width, 0]),
-      startingPoint.add([this.height, this.width, 0]),
-      startingPoint.add([this.height, 0, 0]),
+      startingPoint.add([0, this.rect.y, 0]),
+      startingPoint.add([this.rect.x, this.rect.y, 0]),
+      startingPoint.add([this.rect.x, 0, 0]),
       startingPoint,
     ];
     world.addDrawingLine(line);
@@ -127,7 +125,7 @@ export class SwashZone {
 
   private _createLabel() {
     if (this.label) {
-      const xDelta = (this.isRotated ? -1 : 1) * (this.height / 2 - 2);
+      const xDelta = (this.isRotated ? -1 : 1) * (this.rect.x / 2 - 2);
       const position = this.centerPoint.add(new Vector(xDelta, 0, 0));
       const label = world.createLabel(position);
       label.setText(this.label);
