@@ -214,7 +214,7 @@ export class SwashPlayer {
       capUpgradeDelta,
       CAPTAIN_UPGRADES_HEIGHT,
       CAPTAIN_UPGRADES_WIDTH,
-      this._captainUgradesChanged
+      (zone, disableMessages) => this._captainUgradesChanged(zone, disableMessages)
     );
 
     const shipUpgradeDelta = new Vector(SHIP_UPGRADES_DELTA_X, SHIP_UPGRADES_DELTA_Y, 0);
@@ -223,7 +223,7 @@ export class SwashPlayer {
       shipUpgradeDelta,
       SHIP_UPGRADES_HEIGHT,
       SHIP_UPGRADES_WIDTH,
-      this._shipUgradesChanged
+      (zone, disableMessages) => this._shipUgradesChanged(zone, disableMessages)
     );
   }
 
