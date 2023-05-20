@@ -198,7 +198,7 @@ export class SwashPlayer {
       }
     }
     if (sloopIdx > -1) {
-      const sloop = drawDeck?.takeCards(1, true, sloopIdx, true);
+      const sloop = drawDeck?.takeCards(1, true, sloopIdx);
       sloop?.setPosition(this._getAbsolutePoint(SwashPlayerVectors.ship));
       sloop?.setRotation(new Rotator(180, this.isRotated ? 0 : 180, 0));
       sloop?.freeze();

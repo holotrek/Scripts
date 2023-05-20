@@ -83,7 +83,8 @@ export class CardHelper {
     const discardedCards = CardHelper.getCardAtPoint(discardPoint);
     const drawDeck = CardHelper.getCardAtPoint(drawPoint);
 
-    const numCardsNeeded = Math.min(4, Math.max(1, world.getAllPlayers().length - 1));
+    const seatedPlayers = world.getAllPlayers().filter(x => x.getSlot() < 6).length;
+    const numCardsNeeded = Math.min(4, Math.max(1, seatedPlayers));
     if (discardedCards && (!drawDeck || drawDeck.getStackSize() < numCardsNeeded)) {
       if (drawDeck) {
         discardedCards.addCards(drawDeck, false, undefined, true);
