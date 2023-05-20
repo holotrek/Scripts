@@ -26,6 +26,9 @@ const SHIP_UPGRADES_DELTA_Y = 42;
 const SHIP_UPGRADES_WIDTH = 26;
 const SHIP_UPGRADES_HEIGHT = 50;
 
+const SHIP_DELTA_X = 11;
+const SHIP_DELTA_Y = 20;
+
 const PLAYER_NAME_DELTA_X = -23;
 const PLAYER_NAME_DELTA_Y = 0;
 
@@ -460,11 +463,9 @@ export class SwashPlayer {
         pos = pos.add(new Vector(0, 0, 1));
         const dupe = world.createObjectFromJSON(token.toJSONString(), pos);
         dupe?.onDestroyed.add(() => this._updateResources(this.playerZone));
+        dupe?.setRotation(new Rotator(0, this.isRotated ? 180 : 0, 0));
       }
       container.addObjects([token]);
-      if (this.isRotated) {
-        token.setRotation([0, 180, 0]);
-      }
     }
 
     const name = Resource.getName(resource);
