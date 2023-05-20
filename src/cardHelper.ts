@@ -93,9 +93,15 @@ export class CardHelper {
       discardedCards.shuffle();
     }
 
+    let drawn = 0;
     for (const i in SnapPointManager.snapPoints) {
+      if (drawn >= numCardsNeeded) {
+        break;
+      }
+
       if (CardHelper.shipsPlayedSnapPoints.includes(+i)) {
         const card = drawDeck?.takeCards(1);
+        drawn++;
         card?.setPosition(SnapPointManager.getPointVector(+i), 0.5);
         card?.setRotation(new Rotator(180, 90, 0));
         setTimeout(() => card?.freeze(), 1000);
