@@ -9,6 +9,7 @@ import { Resource, ResourceConverter, Resources } from './resources';
 import { ResourceManager } from './managers/resourceManager';
 import { ShipBehavior } from './behaviors/ship';
 import { ShipManager } from './managers/shipManager';
+import { SnapPointManager, SnapPoints } from './managers/snapPointManager';
 import { SwashZone } from './swashZone';
 import { UpgradeManager } from './managers/upgradeManager';
 
@@ -64,6 +65,7 @@ export class SwashPlayer {
   }
 
   setupPlayerArea() {
+    this._createStartingShip();
     this._createPlayerZones();
     this._labels.push(this._createLabel('Draw', SwashPlayerVectors.drawLabel));
     this._labels.push(this._createLabel('Discard', SwashPlayerVectors.discardLabel));
@@ -80,6 +82,10 @@ export class SwashPlayer {
     }
     if (this.captain) {
       this.captain.player = undefined;
+    }
+    if (this.ship) {
+      CardHelper.discardShip(this.ship.card);
+      this.ship = undefined;
     }
   }
 
@@ -127,7 +133,7 @@ export class SwashPlayer {
         this.ship.removeAllUpgrades();
 
         // Discard Ship Upgrades
-        const discardPoint = this._getRelativePoint(SwashPlayerVectors.discardDeck);
+        const discardPoint = this._getAbsolutePoint(SwashPlayerVectors.discardDeck);
         const allUpgrades = CardHelper.getAllCardsInZone(this._shipUpgradeZone?.zone);
         CardHelper.discardCardsToPoint(discardPoint, allUpgrades);
       }
@@ -174,8 +180,29 @@ export class SwashPlayer {
     }
   }
 
-  private _getRelativePoint(delta: Vector) {
+  private _getAbsolutePoint(delta: Vector) {
     return this.centerPoint.add(delta.multiply(this.isRotated ? -1 : 1));
+  }
+
+  private _createStartingShip(name = 'Sloop') {
+    const shipPoint = this._getAbsolutePoint(SwashPlayerVectors.ship);
+    if (CardHelper.getCardAtPoint(shipPoint)) {
+      return;
+    }
+
+    const drawDeck = CardHelper.getCardAtPoint(SnapPointManager.getPointVector(SnapPoints.ShipDeck));
+    let sloopIdx = -1;
+    for (const d of drawDeck?.getAllCardDetails() || []) {
+      if (d.name === name) {
+        sloopIdx = d.stackIndex;
+      }
+    }
+    if (sloopIdx > -1) {
+      const sloop = drawDeck?.takeCards(1, true, sloopIdx, true);
+      sloop?.setPosition(this._getAbsolutePoint(SwashPlayerVectors.ship));
+      sloop?.setRotation(new Rotator(180, this.isRotated ? 0 : 180, 0));
+      sloop?.freeze();
+    }
   }
 
   private _createPlayerZones() {
@@ -225,7 +252,7 @@ export class SwashPlayer {
     rect: Vector,
     changedFn: (zone: SwashZone, disableMessages?: boolean) => void
   ) {
-    const zoneCenter = this._getRelativePoint(delta);
+    const zoneCenter = this._getAbsolutePoint(delta);
     const zone = SwashZone.createZone(this.color, this.playerIndex, zoneCenter, rect, this.isRotated, 0.5, label);
     zone.setOnCardEnter(_ => changedFn(zone));
     zone.setOnCardLeave(_ => changedFn(zone));
@@ -420,7 +447,7 @@ export class SwashPlayer {
   private _addResource(resource: Resources, amount = 1) {
     const resourceDelta = new Vector(-5 * Math.floor((resource - 1) / 4), 5 * Math.floor((resource - 1) % 4), 20);
     const delta = SwashPlayerVectors.resources.add(resourceDelta);
-    let pos = this._getRelativePoint(delta);
+    let pos = this._getAbsolutePoint(delta);
     const container = ResourceManager.resourceContainers[resource];
     const token = container.takeAt(0, pos);
     if (token) {
@@ -446,7 +473,7 @@ export class SwashPlayer {
   }
 
   private _createLabel(text: string, delta: Vector, scale = 0.5) {
-    const position = this._getRelativePoint(delta);
+    const position = this._getAbsolutePoint(delta);
     const label = world.createLabel(position);
     label.setText(text);
     label.setRotation([-90, this.isRotated ? 180 : 0, 0]);
