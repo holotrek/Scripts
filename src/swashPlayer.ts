@@ -29,10 +29,16 @@ const SHIP_UPGRADES_HEIGHT = 50;
 const PLAYER_NAME_DELTA_X = -23;
 const PLAYER_NAME_DELTA_Y = 0;
 
-const DRAW_DELTA_X = -4;
+const DRAW_LABEL_DELTA_X = -4;
+const DRAW_LABEL_DELTA_Y = -20;
+
+const DRAW_DELTA_X = -13;
 const DRAW_DELTA_Y = -20;
 
-const DISCARD_DELTA_X = -4;
+const DISCARD_LABEL_DELTA_X = -4;
+const DISCARD_LABEL_DELTA_Y = 20;
+
+const DISCARD_DELTA_X = -13;
 const DISCARD_DELTA_Y = 20;
 
 const RESOURCE_DELTA_X = 24;
@@ -75,8 +81,8 @@ export class SwashPlayer {
 
   setupPlayerArea() {
     this._createPlayerZones();
-    this._labels.push(this._createLabel('Draw', DRAW_DELTA_X, DRAW_DELTA_Y));
-    this._labels.push(this._createLabel('Discard', DISCARD_DELTA_X, DISCARD_DELTA_Y));
+    this._labels.push(this._createLabel('Draw', DRAW_LABEL_DELTA_X, DRAW_LABEL_DELTA_Y));
+    this._labels.push(this._createLabel('Discard', DISCARD_LABEL_DELTA_X, DISCARD_LABEL_DELTA_Y));
     this._labels.push(this._createPlayerLabel(PLAYER_NAME_DELTA_X, PLAYER_NAME_DELTA_Y, 1));
   }
 
@@ -133,8 +139,11 @@ export class SwashPlayer {
           }
         }
 
+        // Clear upgrades from ship
+        this.ship.removeAllUpgrades();
+
         // Discard Ship Upgrades
-        const discardPoint = new Vector(DISCARD_DELTA_X, DISCARD_DELTA_Y, 0);
+        const discardPoint = this._getRelativePoint(DISCARD_DELTA_X, DISCARD_DELTA_Y);
         const allUpgrades = CardHelper.getAllCardsInZone(this._shipUpgradeZone?.zone);
         CardHelper.discardCardsToPoint(discardPoint, allUpgrades);
       }
@@ -179,6 +188,11 @@ export class SwashPlayer {
     if (this.ship) {
       this.ship.isOwned = true;
     }
+  }
+
+  private _getRelativePoint(relativeX: number, relativeY: number) {
+    const delta = new Vector(relativeX, relativeY, 0);
+    return this.centerPoint.add(delta.multiply(this.isRotated ? -1 : 1));
   }
 
   private _createPlayerZones() {
@@ -234,7 +248,7 @@ export class SwashPlayer {
     width: number,
     changedFn: (zone: SwashZone, disableMessages?: boolean) => void
   ) {
-    const zoneCenter = this.centerPoint.add(delta.multiply(this.isRotated ? -1 : 1));
+    const zoneCenter = this._getRelativePoint(delta.x, delta.y);
     const zone = SwashZone.createZone(
       this.color,
       this.playerIndex,
@@ -436,9 +450,9 @@ export class SwashPlayer {
   }
 
   private _addResource(resource: Resources, amount = 1) {
-    const deltaX = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_X - 5 * Math.floor((resource - 1) / 4));
-    const deltaY = (this.isRotated ? -1 : 1) * (RESOURCE_DELTA_Y + 5 * Math.floor((resource - 1) % 4));
-    let pos = this.centerPoint.add(new Vector(deltaX, deltaY, 20));
+    const deltaX = RESOURCE_DELTA_X - 5 * Math.floor((resource - 1) / 4);
+    const deltaY = RESOURCE_DELTA_Y + 5 * Math.floor((resource - 1) % 4);
+    let pos = this._getRelativePoint(deltaX, deltaY).add(new Vector(0, 0, 20));
     const container = ResourceManager.resourceContainers[resource];
     const token = container.takeAt(0, pos);
     if (token) {
@@ -466,9 +480,7 @@ export class SwashPlayer {
   }
 
   private _createLabel(text: string, relativeX: number, relativeY: number, scale = 0.5) {
-    const position = this.centerPoint.add(
-      new Vector((this.isRotated ? -1 : 1) * relativeX, (this.isRotated ? -1 : 1) * relativeY, 0)
-    );
+    const position = this._getRelativePoint(relativeX, relativeY);
     const label = world.createLabel(position);
     label.setText(text);
     label.setRotation([-90, this.isRotated ? 180 : 0, 0]);

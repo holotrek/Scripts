@@ -157,6 +157,11 @@ export class ShipBehavior implements IUpgradeable {
     return false;
   }
 
+  removeAllUpgrades() {
+    this._upgrades = [];
+    this._renderUis();
+  }
+
   triggerCrewMoved(player: Player, crewObj: GameObject, isOnShip: boolean, disableMessages = false) {
     const crewId = crewObj.getId();
     if (this.isOwned) {

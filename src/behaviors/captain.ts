@@ -123,6 +123,11 @@ export class CaptainBehavior implements IUpgradeable {
     return false;
   }
 
+  removeAllUpgrades() {
+    this.upgrades = [];
+    this._renderStatsUi();
+  }
+
   triggerCrewMoved(
     player: Player,
     crewObj: GameObject,
