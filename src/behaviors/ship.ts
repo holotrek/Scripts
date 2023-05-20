@@ -274,7 +274,7 @@ export class ShipBehavior implements IUpgradeable {
       const resources = new HorizontalBox();
       for (const r of this.scrap) {
         const img = Resource.getImage(r);
-        resources.addChild(new ImageWidget().setImageSize(0, 32).setImage(img, SWASH_PACKAGE_ID));
+        resources.addChild(new ImageWidget().setImageSize(0, 64).setImage(img, SWASH_PACKAGE_ID));
       }
       column.addChild(resources);
     }
