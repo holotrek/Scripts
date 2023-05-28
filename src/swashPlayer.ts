@@ -332,6 +332,11 @@ export class SwashPlayer {
       const previousUpgrades = upgradeable.getUpgrades();
       const allCardDetails = CardHelper.getAllCardDetailsInZone(zone.zone, Tags.SwashCard);
       const updatedUpgrades = allCardDetails.map(c => UpgradeManager.getUpgrade(c));
+      for (const u of updatedUpgrades) {
+        if (!!u && updatedUpgrades.filter(uu => uu?.name === u.name).length > 1) {
+          this.player?.showMessage(`You must remove duplicate ${u.name}`);
+        }
+      }
 
       const upgradesAdded = updatedUpgrades
         .filter(u => u?.upgradeType === typeAllowed)
@@ -353,9 +358,7 @@ export class SwashPlayer {
           this._showUpgradeSuccessMessage(u);
         }
         if (!added) {
-          this.player?.showMessage(
-            `You must remove a ${u.name} (either it is duplicate or there is no available slot).`
-          );
+          this.player?.showMessage(`You must remove a ${u.name} (there is no available slot).`);
         }
       }
 

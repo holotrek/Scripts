@@ -29,9 +29,6 @@ export class CaptainBehavior implements IUpgradeable {
     { resource: Resources.Rum },
     { resource: Resources.Spices },
   ];
-  abilityEyesPoint?: SnapPoint;
-  abilityHandsPoint?: SnapPoint;
-  abilityLegsPoint?: SnapPoint;
 
   get combatValue(): number {
     return (
@@ -56,6 +53,10 @@ export class CaptainBehavior implements IUpgradeable {
       this.upgrades.map(x => x?.precision ?? 0).reduce((pv, cv) => pv + cv, 0) +
       this.abilities.map(a => a.ability?.precisionDelta || 0).reduce((pv, cv) => pv + cv, 0)
     );
+  }
+
+  get isSturdy(): boolean {
+    return this.abilities.map(a => a.ability?.name).includes('Sturdy');
   }
 
   get player(): Player | undefined {
@@ -85,6 +86,7 @@ export class CaptainBehavior implements IUpgradeable {
   }
 
   addUpgrade(upgrade: CaptainUpgrade): boolean {
+    console.log(upgrade.name);
     if (this.upgrades.map(x => x.name).includes(upgrade.name)) {
       return false;
     }
@@ -92,15 +94,20 @@ export class CaptainBehavior implements IUpgradeable {
     let slotAvailable = false;
     if (upgrade.location === CaptainUpgradeLocation.Brain) {
       slotAvailable = true;
-    } else if (upgrade.location === CaptainUpgradeLocation.OneHandWeapon) {
-      const numOneHandWeapons = this.upgrades.filter(x => x.location === CaptainUpgradeLocation.OneHandWeapon).length;
-      if (numOneHandWeapons < 2) {
+    } else if (upgrade.isWeapon) {
+      const numWeaponHands = this.upgrades
+        .filter(x => x.isWeapon)
+        .map(x => (x.location === CaptainUpgradeLocation.TwoHandWeapon ? 2 : 1))
+        .reduce((pv, cv) => pv + cv, 0);
+      if (this.isSturdy && numWeaponHands <= 2) {
         slotAvailable = true;
+      } else {
+        slotAvailable =
+          upgrade.location === CaptainUpgradeLocation.TwoHandWeapon ? numWeaponHands === 0 : numWeaponHands < 2;
       }
-    } else if (upgrade.location === CaptainUpgradeLocation.TwoHandWeapon) {
-      slotAvailable = !this.upgrades.find(x => x.isWeapon);
     } else {
-      slotAvailable = !this.upgrades.find(x => x.location === upgrade.location);
+      const numExisting = this.upgrades.filter(x => x.location === upgrade.location)?.length;
+      slotAvailable = this.isSturdy ? numExisting < 2 : numExisting === 0;
     }
 
     if (slotAvailable) {

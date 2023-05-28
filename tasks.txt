@@ -21,11 +21,15 @@ x Crew on ship needs to count for Defense
 x Counters & buttons to change amount for resources
   x Trading calculator
 
-- Detect damage cubes and crew members on Ship(s) in the middle and show a UI of the current status
-- Button on unowned ship "Claim Ship" which replaces your ship
+x Detect damage cubes and crew members on Ship(s) in the middle and show a UI of the current status
+x Button on unowned ship "Claim Ship" which replaces your ship
+
+- Account for "Sturdy" leg ability being in player area to allow an extra captain equipment
 
 --Bonus:
-  - Use better colors for resources
+  x Use better colors for resources
+  
+  - Screen UI to select from Ability decks that shows both sides of each card (or wait for feature to be added)
 
 # General
 
