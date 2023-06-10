@@ -70,8 +70,8 @@ export class SwashPlayer {
     this._labels.push(this._createLabel('Draw', SwashPlayerVectors.drawLabel));
     this._labels.push(this._createLabel('Discard', SwashPlayerVectors.discardLabel));
     this._labels.push(this._createPlayerLabel(SwashPlayerVectors.nameLabel, 1));
-    this._addResource(Resources.Leather, 5);
-    this._addResource(Resources.Lumber, 3);
+    this._addResource(Resources.Lumber, 5);
+    this._addResource(Resources.Leather, 3);
     this._addResource(Resources.Iron, 2);
     this._addResource(Resources.Coffee, 1);
     this._addResource(Resources.Rum, 1);

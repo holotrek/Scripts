@@ -1,13 +1,17 @@
 Setup:
   - All players receive: 5 Lumber, 3 Leather, 2 Iron, 1 Coffee, 1 Rum
+  - Give one player the 1st Player Token
 
 Game Phases:
   - Discard & Draw Ships up to player count - 1 (max 4)
-  - Turn Phase
+  - All players reshuffle discarded cards to form new draw pile
+  - Turn Phases
+    - Continue turn phases until players have no more cards in Draw pile
   - Combat Phase
+  - Trade Phase
 
 Turn Phase:
-  - Draw 5 cards
+  - Draw 3 cards
   - Perform one of 3 actions with each card:
     - Play (top action)
     - Upgrade Captain or Ship (bottom action)
@@ -16,12 +20,29 @@ Turn Phase:
   - Pass to next player
 
 Combat Phase:
-  - 
+  - For each ship with damage cubes:
+    - Roll amount of FATE dice listed and add the roll to the damage (total damage is damage cubes + roll)
+      - If total damage >= Sink DMG, the ship is sunk and lost - no rewards received
+      - If total damage >= health, the ship is conquered
+    - If conquered, the player with the most crew will take the ship
+      - If tied in crew (or zero crew), the player with the most damage cubes take the ship
+      - If tied on damage, each player will roll 4 FATE dice (repeat until a player has a higher number)
+    - The player who conquered the ship may chose one of 2 options:
+      - Use Ship:
+        - Discard your current ship
+        - Discard all current upgrades and take resources equal to their value (top left corner)
+        - Place current ship in play area
+      - Scrap Ship:
+        - Receive rewards listed in "Scrap Rewards"
+        - Discard this ship
 
-Buy Phase
+Buy Phase:
   - Buy (repeated action):
     - Pay resources identified in the middle area to take a card and place in your discard
     - Replace the card bought with one from the deck immediately after buying
     - May do this as many times as resources allow
   - Trade (one-time action):
-    - 
+    - Allows you to remove an unwanted card from the buy area and trade for potentially higher value resources
+    - Pay resources with an equivalent value to the resource in the top-left corner of a card in the buy area
+    - Take the resource in the top-left corner
+    - Move the card to the discard pile next to the buy deck
