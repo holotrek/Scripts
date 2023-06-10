@@ -1,0 +1,27 @@
+Setup:
+  - All players receive: 5 Lumber, 3 Leather, 2 Iron, 1 Coffee, 1 Rum
+
+Game Phases:
+  - Discard & Draw Ships up to player count - 1 (max 4)
+  - Turn Phase
+  - Combat Phase
+
+Turn Phase:
+  - Draw 5 cards
+  - Perform one of 3 actions with each card:
+    - Play (top action)
+    - Upgrade Captain or Ship (bottom action)
+    - Discard for resource identified in top-left corner
+  - Buy Phase
+  - Pass to next player
+
+Combat Phase:
+  - 
+
+Buy Phase
+  - Buy (repeated action):
+    - Pay resources identified in the middle area to take a card and place in your discard
+    - Replace the card bought with one from the deck immediately after buying
+    - May do this as many times as resources allow
+  - Trade (one-time action):
+    - 

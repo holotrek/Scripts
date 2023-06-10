@@ -70,9 +70,18 @@ export class SwashPlayer {
     this._labels.push(this._createLabel('Draw', SwashPlayerVectors.drawLabel));
     this._labels.push(this._createLabel('Discard', SwashPlayerVectors.discardLabel));
     this._labels.push(this._createPlayerLabel(SwashPlayerVectors.nameLabel, 1));
+    this._addResource(Resources.Leather, 5);
+    this._addResource(Resources.Lumber, 3);
+    this._addResource(Resources.Iron, 2);
+    this._addResource(Resources.Coffee, 1);
+    this._addResource(Resources.Rum, 1);
   }
 
   cleanupPlayerArea() {
+    const resources = CardHelper.getAllCardsInZone(this.playerZone?.zone, Tags.Resource);
+    for (const r of resources) {
+      r.destroy();
+    }
     for (const z of this.zones) {
       z.remove();
     }
@@ -181,7 +190,9 @@ export class SwashPlayer {
   }
 
   private _getAbsolutePoint(delta: Vector) {
-    return this.centerPoint.add(delta.multiply(this.isRotated ? -1 : 1));
+    const x = (this.isRotated ? -1 : 1) * delta.x;
+    const y = (this.isRotated ? -1 : 1) * delta.y;
+    return this.centerPoint.add(new Vector(x, y, delta.z));
   }
 
   private _createStartingShip(name = 'Sloop') {

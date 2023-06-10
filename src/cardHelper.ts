@@ -2,7 +2,7 @@ import { Card, CardDetails, ObjectType, Rotator, Vector, world, Zone } from '@ta
 import { SnapPointManager, SnapPoints } from './managers/snapPointManager';
 
 export class CardHelper {
-  static getAllCardsInZone(zone?: Zone) {
+  static getAllCardsInZone(zone?: Zone, tagFilter?: string) {
     if (!zone) {
       return [];
     }
@@ -10,7 +10,8 @@ export class CardHelper {
     return zone
       .getOverlappingObjects()
       .filter(o => o instanceof Card)
-      .map(o => o as Card);
+      .map(o => o as Card)
+      .filter(c => !tagFilter || !!c.getAllCardDetails().find(cd => cd.tags.includes(tagFilter)));
   }
 
   static getAllCardDetailsInZone(zone?: Zone, tagFilter?: string, faceUpOnly = false) {
@@ -84,7 +85,8 @@ export class CardHelper {
     const drawDeck = CardHelper.getCardAtPoint(drawPoint);
 
     const seatedPlayers = world.getAllPlayers().filter(x => x.getSlot() < 6).length;
-    const numCardsNeeded = Math.min(4, Math.max(1, seatedPlayers));
+    const numCardsNeeded = Math.min(4, Math.max(1, seatedPlayers - 1));
+    console.log(numCardsNeeded);
     if (discardedCards && (!drawDeck || drawDeck.getStackSize() < numCardsNeeded)) {
       if (drawDeck) {
         discardedCards.addCards(drawDeck, false, undefined, true);
@@ -105,7 +107,6 @@ export class CardHelper {
         drawn++;
         card?.setPosition(SnapPointManager.getPointVector(+i), 0.5);
         card?.setRotation(new Rotator(180, 90, 0));
-        setTimeout(() => card?.freeze(), 1000);
       }
     }
   }
