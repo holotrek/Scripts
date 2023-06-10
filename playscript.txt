@@ -7,8 +7,11 @@ Game Phases:
   - All players reshuffle discarded cards to form new draw pile
   - Turn Phases
     - Continue turn phases until players have no more cards in Draw pile
+  - Upkeep Phase
+    - Pay upkeep for any crew used
   - Combat Phase
   - Trade Phase
+    - Starting with 1st player, make one trade transaction each (i.e. 3 Lumber for 1 Spice or 1 Gold for 4 Leather)
 
 Turn Phase:
   - Draw 3 cards
@@ -35,6 +38,7 @@ Combat Phase:
       - Scrap Ship:
         - Receive rewards listed in "Scrap Rewards"
         - Discard this ship
+    - Damage cubes are returned to players and crew are placed back on Captain sheet
 
 Buy Phase:
   - Buy (repeated action):
