@@ -5,6 +5,7 @@ Setup:
 Game Phases:
   - Discard & Draw Ships up to player count - 1 (max 4)
   - All players reshuffle discarded cards to form new draw pile
+  - Pass 1st Player Token one place clockwise
   - Turn Phases
     - Continue turn phases until players have no more cards in Draw pile
   - Upkeep Phase

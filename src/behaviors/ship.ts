@@ -52,32 +52,19 @@ export class ShipBehavior implements IUpgradeable {
     for (const arr of Object.values(this._damageCubes)) {
       damage += arr.length;
     }
+    for (const arr of Object.values(this._crewOnAttack)) {
+      damage += arr.length;
+    }
     return damage;
   }
 
   get damageLeader(): number {
-    let curLeader = -1;
-    let leaderAmount = 0;
-    for (const slot in this._damageCubes) {
-      if (this._damageCubes[+slot].length > leaderAmount) {
-        curLeader = +slot;
-        leaderAmount = this._damageCubes[+slot].length;
-      }
-    }
-    return curLeader;
+    return this._getPlayerWithMostTokens(this._damageCubes);
   }
 
   get attackLeader(): number {
-    let curLeader = -1;
-    let leaderAmount = 0;
-    for (const slot in this._crewOnAttack) {
-      if (this._crewOnAttack[+slot].length > leaderAmount) {
-        curLeader = +slot;
-        leaderAmount = this._crewOnAttack[+slot].length;
-      }
-    }
-
-    return curLeader > -1 ? curLeader : this.damageLeader;
+    const leader = this._getPlayerWithMostTokens(this._crewOnAttack);
+    return leader > -1 ? leader : this.damageLeader;
   }
 
   get attackLeaderName(): string | undefined {
@@ -233,6 +220,19 @@ export class ShipBehavior implements IUpgradeable {
     obj.onDestroyed.add(removeFunc);
 
     return true;
+  }
+
+  private _getPlayerWithMostTokens(tokenSet: { [key: number]: string[] }): number {
+    let curLeader = -1;
+    let leaderAmount = 0;
+    for (const slot in tokenSet) {
+      if (tokenSet[+slot].length > leaderAmount) {
+        curLeader = +slot;
+        leaderAmount = tokenSet[+slot].length;
+      }
+    }
+
+    return curLeader;
   }
 
   private _renderUis() {
