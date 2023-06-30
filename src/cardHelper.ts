@@ -86,7 +86,6 @@ export class CardHelper {
 
     const seatedPlayers = world.getAllPlayers().filter(x => x.getSlot() < 6).length;
     const numCardsNeeded = Math.min(4, Math.max(1, seatedPlayers - 1));
-    console.log(numCardsNeeded);
     if (discardedCards && (!drawDeck || drawDeck.getStackSize() < numCardsNeeded)) {
       if (drawDeck) {
         discardedCards.addCards(drawDeck, false, undefined, true);

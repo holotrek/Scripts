@@ -86,7 +86,6 @@ export class CaptainBehavior implements IUpgradeable {
   }
 
   addUpgrade(upgrade: CaptainUpgrade): boolean {
-    console.log(upgrade.name);
     if (this.upgrades.map(x => x.name).includes(upgrade.name)) {
       return false;
     }
