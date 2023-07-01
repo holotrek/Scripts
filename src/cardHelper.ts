@@ -40,6 +40,11 @@ export class CardHelper {
     return undefined;
   }
 
+  static shuffleDeckAtPoint(point: Vector) {
+    const deck = CardHelper.getCardAtPoint(point);
+    deck?.shuffle();
+  }
+
   static discardCardsToPoint(point: Vector, cards: Card[], rotator = new Rotator(180, 0, 0)) {
     const discardedCards = CardHelper.getCardAtPoint(point);
     for (const c of cards) {

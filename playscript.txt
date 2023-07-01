@@ -1,13 +1,13 @@
 Setup:
   - All players receive: 5 Lumber, 3 Leather, 2 Iron, 1 Coffee, 1 Rum
-  - Give one player the 1st Player Token
+  - Choose a player to give the 1st Player Token
 
 Game Phases:
   - Discard & Draw Ships up to player count - 1 (max 4)
   - All players reshuffle discarded cards to form new draw pile
-  - Pass 1st Player Token one place clockwise
   - Turn Phases
-    - Continue turn phases until players have no more cards in Draw pile
+    - Continue turn phases until all players pass (don't take any card action)
+      - Players may choose to keep cards in their hand for next round
   - Upkeep Phase
     - Pay upkeep for any crew used
   - Combat Phase
@@ -15,10 +15,11 @@ Game Phases:
     - Starting with 1st player, make one trade transaction each (i.e. 3 Lumber for 1 Spice or 1 Gold for 4 Leather)
   - Buy Phase
     - Starting with 1st player (see Buy Phase)
+  - Pass 1st Player Token one place clockwise
 
 Turn Phase:
-  - Draw 3 cards
-  - Perform one of the following actions with 1-3 cards:
+  - Redraw up to 3 cards total
+  - Perform one of the following actions with 1-3 cards (or pass):
     - Play (top action)
       - If attacking a Ship, ship attacks back (against origin of attack - Captain or Ship)
         - Roll # of FATE Dice listed and add to CV for damage
@@ -50,6 +51,9 @@ Combat Phase:
           - Medium Ship: X == 2
           - Large Ship: X == 3
         - Discard this ship
+    - The player who conquered the ship may choose 1 ability for their Captain
+      - They may not take an ability for a body part with an existing ability
+      - Place the new ability face-up (uninjured side up)
     - Damage cubes are returned to players and crew are placed back on Captain sheet
 
 Buy Phase:

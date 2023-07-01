@@ -1,4 +1,4 @@
-import { GameWorld, SnapPoint, Vector, world } from '@tabletop-playground/api';
+import { Vector, world } from '@tabletop-playground/api';
 
 export enum SnapPoints {
   ShipDeck,
@@ -7,6 +7,8 @@ export enum SnapPoints {
   NpcShip2,
   NpcShip3,
   NpcShip4,
+  UpgradeDeck,
+  TreasureDeck,
 }
 
 export class SnapPointManager {
@@ -20,6 +22,8 @@ export class SnapPointManager {
     [SnapPoints.NpcShip2]: new Vector(10, 12, 0),
     [SnapPoints.NpcShip3]: new Vector(-10, -16, 0),
     [SnapPoints.NpcShip4]: new Vector(-10, 12, 0),
+    [SnapPoints.UpgradeDeck]: new Vector(0, 87, 0),
+    [SnapPoints.TreasureDeck]: new Vector(0, -75, 0),
   };
 
   //static loadPoints() {}

@@ -3,6 +3,7 @@ import { CardHelper } from './cardHelper';
 import { PlayerManager } from './managers/playerManager';
 import { ResourceManager } from './managers/resourceManager';
 import { Resources } from './resources';
+import { SnapPointManager, SnapPoints } from './managers/snapPointManager';
 
 ResourceManager.resourceContainers[Resources.Lumber] = world.getObjectById('g4q') as Container;
 ResourceManager.resourceContainers[Resources.Leather] = world.getObjectById('sm1') as Container;
@@ -57,6 +58,10 @@ createLabel('Upgrade\nDraw', new Vector(10, 87, tableHeight), new Rotator(-90, 0
 createLabel('Upgrade\nDiscard', new Vector(-10, 117, tableHeight), new Rotator(-90, 180, 0));
 createLabel('Upgrade\nDiscard', new Vector(10, 117, tableHeight), new Rotator(-90, 0, 0));
 renderWorldUI();
+
+CardHelper.shuffleDeckAtPoint(SnapPointManager.getPointVector(SnapPoints.ShipDeck));
+CardHelper.shuffleDeckAtPoint(SnapPointManager.getPointVector(SnapPoints.UpgradeDeck));
+CardHelper.shuffleDeckAtPoint(SnapPointManager.getPointVector(SnapPoints.TreasureDeck));
 
 /**
  * Event that will trigger when a player joins or switches seats, in order
