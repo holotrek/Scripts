@@ -13,14 +13,21 @@ Game Phases:
   - Combat Phase
   - Trade Phase
     - Starting with 1st player, make one trade transaction each (i.e. 3 Lumber for 1 Spice or 1 Gold for 4 Leather)
+  - Buy Phase
+    - Starting with 1st player (see Buy Phase)
 
 Turn Phase:
   - Draw 3 cards
-  - Perform one of 3 actions with each card:
+  - Perform one of the following actions with 1-3 cards:
     - Play (top action)
+      - If attacking a Ship, ship attacks back (against origin of attack - Captain or Ship)
+        - Roll # of FATE Dice listed and add to CV for damage
+        - If greater than Defense, Ship is damaged/Captain is injured
+        - Damaged ships may not attack/be upgraded until next round
+        - Injured captains flip over one ability (if any exist)
+          - If no ability to flip, Captain may not attack/be upgraded until next round
     - Upgrade Captain or Ship (bottom action)
     - Discard for resource identified in top-left corner
-  - Buy Phase
   - Pass to next player
 
 Combat Phase:
@@ -38,16 +45,20 @@ Combat Phase:
         - Place current ship in play area
       - Scrap Ship:
         - Receive rewards listed in "Scrap Rewards"
+        - Receive treasure if Cargo space allows for it (draw X, keep 1):
+          - Small Ship: X == 1
+          - Medium Ship: X == 2
+          - Large Ship: X == 3
         - Discard this ship
     - Damage cubes are returned to players and crew are placed back on Captain sheet
 
 Buy Phase:
-  - Buy (repeated action):
-    - Pay resources identified in the middle area to take a card and place in your discard
-    - Replace the card bought with one from the deck immediately after buying
-    - May do this as many times as resources allow
-  - Trade (one-time action):
+  - Barter (one-time action):
     - Allows you to remove an unwanted card from the buy area and trade for potentially higher value resources
     - Pay resources with an equivalent value to the resource in the top-left corner of a card in the buy area
     - Take the resource in the top-left corner
     - Move the card to the discard pile next to the buy deck
+  - Buy (repeated action):
+    - Pay resources identified in the middle area to take a card and place in your discard
+    - Replace the card bought with one from the deck immediately after buying
+    - May do this as many times as resources allow

@@ -52,6 +52,10 @@ createLabel('Ship Draw', new Vector(-15, 36, tableHeight), new Rotator(-90, 180,
 createLabel('Ship Draw', new Vector(15, 36, tableHeight), new Rotator(-90, 0, 0));
 createLabel('Ship Discard', new Vector(-15, -50, tableHeight), new Rotator(-90, 180, 0));
 createLabel('Ship Discard', new Vector(15, -50, tableHeight), new Rotator(-90, 0, 0));
+createLabel('Upgrade\nDraw', new Vector(-10, 87, tableHeight), new Rotator(-90, 180, 0));
+createLabel('Upgrade\nDraw', new Vector(10, 87, tableHeight), new Rotator(-90, 0, 0));
+createLabel('Upgrade\nDiscard', new Vector(-10, 117, tableHeight), new Rotator(-90, 180, 0));
+createLabel('Upgrade\nDiscard', new Vector(10, 117, tableHeight), new Rotator(-90, 0, 0));
 renderWorldUI();
 
 /**
@@ -69,6 +73,7 @@ function initiatePlayer(player: Player, oldIndex?: number) {
   if (swashPlayer) {
     swashPlayer.player = player;
     swashPlayer.setupPlayerArea();
+    swashPlayer.resetStartingResources();
   }
 }
 
@@ -78,6 +83,6 @@ globalEvents.onPlayerSwitchedSlots.add(initiatePlayer);
 for (let i = 0; i < 6; i++) {
   const p = world.getPlayerBySlot(i);
   if (p) {
-    initiatePlayer(p, -1);
+    initiatePlayer(p, p.getSlot());
   }
 }

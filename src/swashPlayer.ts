@@ -9,6 +9,7 @@ import { Resource, ResourceConverter, Resources } from './resources';
 import { ResourceManager } from './managers/resourceManager';
 import { ShipBehavior } from './behaviors/ship';
 import { ShipManager } from './managers/shipManager';
+import { ShipSizes } from './specs/ship';
 import { SnapPointManager, SnapPoints } from './managers/snapPointManager';
 import { SwashZone } from './swashZone';
 import { UpgradeManager } from './managers/upgradeManager';
@@ -70,11 +71,6 @@ export class SwashPlayer {
     this._labels.push(this._createLabel('Draw', SwashPlayerVectors.drawLabel));
     this._labels.push(this._createLabel('Discard', SwashPlayerVectors.discardLabel));
     this._labels.push(this._createPlayerLabel(SwashPlayerVectors.nameLabel, 1));
-    this._addResource(Resources.Lumber, 5);
-    this._addResource(Resources.Leather, 3);
-    this._addResource(Resources.Iron, 2);
-    this._addResource(Resources.Coffee, 1);
-    this._addResource(Resources.Rum, 1);
   }
 
   cleanupPlayerArea() {
@@ -93,9 +89,21 @@ export class SwashPlayer {
       this.captain.player = undefined;
     }
     if (this.ship) {
-      CardHelper.discardShip(this.ship.card);
+      this.ship.card.destroy();
       this.ship = undefined;
     }
+  }
+
+  resetStartingResources() {
+    const resources = CardHelper.getAllCardsInZone(this.playerZone?.zone, Tags.Resource);
+    for (const r of resources) {
+      r.destroy();
+    }
+    this._addResource(Resources.Lumber, 5, true);
+    this._addResource(Resources.Leather, 3, true);
+    this._addResource(Resources.Iron, 2, true);
+    this._addResource(Resources.Coffee, 1, true);
+    this._addResource(Resources.Rum, 1, true);
   }
 
   triggerCrewMoved(crewObj: GameObject, disableMessages = false) {
@@ -163,6 +171,11 @@ export class SwashPlayer {
     for (const r of ship.scrap) {
       this._addResource(r, 1);
     }
+    const treasures = ship.size === ShipSizes.Large ? 3 : ship.size == ShipSizes.Medium ? 2 : 1;
+    const treasureMessage =
+      treasures === 1 ? 'Draw 1 treasure.' : `Draw ${treasures} treasures and keep 1. Discard the rest.`;
+    this.player?.showMessage(treasureMessage);
+    world.broadcastChatMessage(`${this.player?.getName()}: ${treasureMessage}`, this.color);
     CardHelper.discardShip(ship.card);
   }
 
@@ -201,19 +214,21 @@ export class SwashPlayer {
       return;
     }
 
-    const drawDeck = CardHelper.getCardAtPoint(SnapPointManager.getPointVector(SnapPoints.ShipDeck));
+    const shipDeck = world.createObjectFromTemplate('71AA212D4D69A06F1282E0B75E468B4B', shipPoint) as Card;
     let sloopIdx = -1;
-    for (const d of drawDeck?.getAllCardDetails() || []) {
+    for (const d of shipDeck?.getAllCardDetails() || []) {
       if (d.name === name) {
         sloopIdx = d.stackIndex;
       }
     }
     if (sloopIdx > -1) {
-      const sloop = drawDeck?.takeCards(1, true, sloopIdx);
+      const sloop = shipDeck?.takeCards(1, true, sloopIdx);
+      sloop?.setScale([1.5, 1.5, 1.5]);
       sloop?.setPosition(this._getAbsolutePoint(SwashPlayerVectors.ship));
       sloop?.setRotation(new Rotator(180, this.isRotated ? 0 : 180, 0));
       sloop?.freeze();
     }
+    shipDeck.destroy();
   }
 
   private _createPlayerZones() {
@@ -458,7 +473,7 @@ export class SwashPlayer {
     this._updateResources(this.playerZone);
   }
 
-  private _addResource(resource: Resources, amount = 1) {
+  private _addResource(resource: Resources, amount = 1, disableMessages = false) {
     const resourceDelta = new Vector(-5 * Math.floor((resource - 1) / 4), 5 * Math.floor((resource - 1) % 4), 20);
     const delta = SwashPlayerVectors.resources.add(resourceDelta);
     let pos = this._getAbsolutePoint(delta);
@@ -468,7 +483,7 @@ export class SwashPlayer {
       for (let i = 0; i < amount; i++) {
         pos = pos.add(new Vector(0, 0, 1));
         const dupe = world.createObjectFromJSON(token.toJSONString(), pos);
-        dupe?.onDestroyed.add(() => this._updateResources(this.playerZone));
+        dupe?.onDestroyed.add(() => this._updateResources(this.playerZone, disableMessages));
         dupe?.setRotation(new Rotator(0, this.isRotated ? 180 : 0, 0));
       }
       container.addObjects([token]);
@@ -477,7 +492,7 @@ export class SwashPlayer {
     const name = Resource.getName(resource);
     this._optimisticResources[name] = (this._optimisticResources[name] || 0) + amount;
     this._renderScreenUi();
-    this._updateResources(this.playerZone);
+    this._updateResources(this.playerZone, disableMessages);
   }
 
   private _createPlayerLabel(delta: Vector, scale = 0.5) {
