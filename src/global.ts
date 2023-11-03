@@ -53,10 +53,10 @@ createLabel('Ship Draw', new Vector(-15, 36, tableHeight), new Rotator(-90, 180,
 createLabel('Ship Draw', new Vector(15, 36, tableHeight), new Rotator(-90, 0, 0));
 createLabel('Ship Discard', new Vector(-15, -50, tableHeight), new Rotator(-90, 180, 0));
 createLabel('Ship Discard', new Vector(15, -50, tableHeight), new Rotator(-90, 0, 0));
-createLabel('Upgrade\nDraw', new Vector(-10, 87, tableHeight), new Rotator(-90, 180, 0));
-createLabel('Upgrade\nDraw', new Vector(10, 87, tableHeight), new Rotator(-90, 0, 0));
-createLabel('Upgrade\nDiscard', new Vector(-10, 117, tableHeight), new Rotator(-90, 180, 0));
-createLabel('Upgrade\nDiscard', new Vector(10, 117, tableHeight), new Rotator(-90, 0, 0));
+createLabel('Draw', new Vector(-10, 87, tableHeight), new Rotator(-90, 180, 0));
+createLabel('Draw', new Vector(10, 87, tableHeight), new Rotator(-90, 0, 0));
+createLabel('Discard', new Vector(-10, 117, tableHeight), new Rotator(-90, 180, 0));
+createLabel('Discard', new Vector(10, 117, tableHeight), new Rotator(-90, 0, 0));
 renderWorldUI();
 
 CardHelper.shuffleDeckAtPoint(SnapPointManager.getPointVector(SnapPoints.ShipDeck));
@@ -91,3 +91,7 @@ for (let i = 0; i < 6; i++) {
     initiatePlayer(p, p.getSlot());
   }
 }
+
+world.broadcastChatMessage(
+  'Welcome to Swash! Please select your player colors and when ready, click "Discard and Redraw" next to the ship deck to begin.'
+);
