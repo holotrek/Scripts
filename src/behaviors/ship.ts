@@ -167,13 +167,13 @@ export class ShipBehavior implements IUpgradeable {
         if (idx > -1) {
           this._crewOnDefense.splice(idx, 1);
           this._renderUis();
-        }
 
-        if (!disableMessages) {
-          world.broadcastChatMessage(
-            `${player.getName()} removed a crewmember from Ship defense.`,
-            player.getPlayerColor()
-          );
+          if (!disableMessages) {
+            world.broadcastChatMessage(
+              `${player.getName()} removed a crewmember from Ship defense.`,
+              player.getPlayerColor()
+            );
+          }
         }
       }
     } else {
