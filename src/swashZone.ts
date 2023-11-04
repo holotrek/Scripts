@@ -91,7 +91,7 @@ export class SwashZone {
     zone.setSlotOwns(this.playerIndex, true);
     zone.setSlotOwns(GM_INDEX, true);
     zone.setObjectInteraction(ZonePermission.OwnersOnly);
-    zone.setSnapping(ZonePermission.OwnersOnly);
+    zone.setSnapping(ZonePermission.Everybody); /*Temporarily until bug is fixed*/
     zone.setStacking(ZonePermission.OwnersOnly);
     zone.setInserting(ZonePermission.OwnersOnly);
     zone.onBeginOverlap.add((_, object) => {

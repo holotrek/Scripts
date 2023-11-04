@@ -142,12 +142,11 @@ export class CaptainBehavior implements IUpgradeable {
     disableMessages = false
   ) {
     const crewId = crewObj.getId();
+    const crewOnDefenseIdx = this._crewOnDefense.findIndex(c => c === crewId);
+    let removeFromDefense = true;
+
     if (snapPoint) {
       const upkeep = this.crewUpkeep[snapPoint.getIndex()];
-      const idx = this._crewOnDefense.findIndex(c => c === crewId);
-      if (idx > -1) {
-        this._crewOnDefense.splice(idx, 1);
-      }
       this._renderStatsUi();
 
       if (!disableMessages) {
@@ -157,17 +156,32 @@ export class CaptainBehavior implements IUpgradeable {
         );
       }
     } else if (isOnCaptain && !this._crewOnDefense.includes(crewId)) {
-      this._crewOnDefense.push(crewId);
+      // Is the crew in the defense area? (currently using x < -6 to estimate lowest fifth of card)
+      var crewLocalPos = this.card.worldPositionToLocal(crewObj.getPosition());
+      if (crewLocalPos.x < -6) {
+        removeFromDefense = false;
+        this._crewOnDefense.push(crewId);
+        this._renderStatsUi();
+
+        if (!disableMessages) {
+          world.broadcastChatMessage(
+            `${player.getName()} added a crewmember to Captain defense.`,
+            player.getPlayerColor()
+          );
+        }
+      }
+    }
+
+    if (removeFromDefense && crewOnDefenseIdx > -1) {
+      this._crewOnDefense.splice(crewOnDefenseIdx, 1);
       this._renderStatsUi();
 
       if (!disableMessages) {
         world.broadcastChatMessage(
-          `${player.getName()} added a crewmember to Captain defense.`,
+          `${player.getName()} removed a crewmember from Captain defense.`,
           player.getPlayerColor()
         );
       }
-    } else if (!isOnCaptain) {
-      this._renderStatsUi();
     }
   }
 
